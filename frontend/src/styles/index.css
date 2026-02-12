@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* 默认滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 5px;
+}
