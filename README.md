@@ -27,6 +27,25 @@
 - **实时预览** - 滤镜效果即时渲染，所见即所得
 - **原图保护** - 保存时输出原始尺寸，不受预览缩放影响
 
+### 🎨 HSL高级调节（新增）
+
+- **8种颜色独立调节** - 红、橙、黄、绿、青、蓝、紫、洋红
+- **三维度控制** - 色相(-180°~+180°)、饱和度(-100%~+100%)、明度(-100%~+100%)
+- **预设效果** - 暖色调、冷色调、复古胶片、鲜艳色彩
+- **开关控制** - 可随时开启/关闭，关闭时不处理提升性能
+
+### 💾 保存选项（新增）
+
+- **无损保存** - PNG格式，保留完整画质，适合后续编辑
+- **压缩保存** - JPEG格式，自动缩放大图到4000px，文件更小
+- **智能处理** - 压缩保存时先缩放再应用滤镜，大幅提升性能
+
+### 📷 RAW格式支持（新增）
+
+- **支持多种RAW格式** - 富士RAF、佳能CR2、尼康NEF、索尼ARW、Adobe DNG
+- **自动转换** - 上传时自动转换为JPEG格式处理
+- **保留画质** - 使用rawpy库进行高质量转换
+
 ### 🤖 AI智能调整
 
 - **自然语言输入** - 输入"让照片更亮一点"、"增加电影感"等描述
@@ -79,6 +98,7 @@
 | SQLAlchemy | 2.x | ORM框架 |
 | SQLite | 3 | 数据库 |
 | Pillow | 10.x | 图像处理 |
+| rawpy | 0.18+ | RAW格式处理 |
 | qrcode | 7.x | 二维码生成 |
 | Flask-CORS | 4.x | 跨域支持 |
 
@@ -161,8 +181,10 @@ PicMaster/
 │   │   │   ├── index.ts         # Axios实例配置
 │   │   │   └── portfolioApi.js  # 作品集API
 │   │   ├── components/          # 公共组件
-│   │   │   ├── FilterEditor.vue # 滤镜编辑器
-│   │   │   ├── ImageEditor.vue  # 图片编辑器
+│   │   │   ├── BatchProcessor.vue # 批量处理组件
+│   │   │   ├── CurvesEditor.vue   # 曲线编辑器
+│   │   │   ├── HSLEditor.vue      # HSL编辑器
+│   │   │   ├── ImageEditor.vue    # 图片编辑器
 │   │   │   ├── PortfolioManager.vue
 │   │   │   └── PortfolioViewer.vue
 │   │   ├── config/              # 配置文件
@@ -174,6 +196,7 @@ PicMaster/
 │   │   ├── types/               # TypeScript类型定义
 │   │   ├── utils/               # 工具函数
 │   │   │   ├── errorHandler.ts  # 错误处理
+│   │   │   ├── historyManager.ts # 历史记录管理
 │   │   │   ├── imageFilters.ts  # 图像滤镜算法
 │   │   │   └── logger.ts        # 日志工具
 │   │   └── views/               # 页面视图
@@ -252,7 +275,24 @@ interface FilterParams {
   vignette: number     // 暗角: 0 ~ 100
   clarity: number      // 清晰度: -100 ~ 100
   blur: number         // 模糊: 0 ~ 20
+  hsl?: Record<string, { hue: number; saturation: number; lightness: number }>  // HSL调节
 }
+```
+
+### HSL颜色调节
+
+支持对8种颜色进行独立的色相、饱和度、明度调节：
+
+```typescript
+// HSL调节参数
+interface HSLValue {
+  hue: number         // 色相: -180 ~ 180
+  saturation: number  // 饱和度: -100 ~ 100
+  lightness: number   // 明度: -100 ~ 100
+}
+
+// 支持的颜色
+const colors = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'magenta']
 ```
 
 ### AI意图解析
@@ -272,6 +312,9 @@ interface FilterParams {
 - **滤镜防抖** - 参数调整时50ms防抖，避免频繁重绘
 - **Canvas优化** - 使用Fabric.js优化渲染性能
 - **请求拦截** - 统一的错误处理和日志记录
+- **条件滤镜** - 只处理有变化的滤镜参数，提升性能
+- **智能缩放** - 压缩保存时先缩放再应用滤镜，大幅提升大图处理速度
+- **HSL开关** - 关闭HSL时跳过处理，提升保存速度
 
 ---
 
@@ -283,6 +326,34 @@ interface FilterParams {
 | Edge | 最新版本 |
 | Firefox | 最新版本 |
 | Safari | 最新版本 |
+
+---
+
+## 更新日志
+
+### v1.1.0 (2026-03-05)
+
+#### 新增功能
+- ✨ HSL高级调节 - 8种颜色独立调节色相、饱和度、明度
+- ✨ 无损/压缩保存选项 - 支持PNG无损保存和JPEG压缩保存
+- ✨ RAW格式支持 - 支持富士RAF、佳能CR2、尼康NEF等RAW格式
+
+#### 性能优化
+- 🚀 条件滤镜处理 - 只处理有变化的滤镜参数
+- 🚀 智能缩放保存 - 压缩保存时先缩放再应用滤镜
+- 🚀 HSL性能优化 - 关闭时跳过处理，添加提前退出检查
+
+#### Bug修复
+- 🐛 修复HSL调节后画板生成新照片的问题
+- 🐛 修复大图片保存加载慢的问题
+- 🐛 修复批量处理TypeScript类型错误
+
+### v1.0.0 (初始版本)
+
+- 🎉 基础图片编辑功能
+- 🎉 AI智能调整
+- 🎉 作品集管理
+- 🎉 二维码分享
 
 ---
 
