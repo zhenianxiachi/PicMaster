@@ -52,10 +52,10 @@
 
           <el-upload
             class="image-upload"
-            :auto-upload="false"
+            :auto-upload="true"
             :multiple="true"
             :limit="20"
-            :on-change="handleImageUpload"
+            :http-request="handleImageUpload"
             list-type="picture-card"
           >
             <el-icon class="el-icon--plus"><Plus /></el-icon>
@@ -140,6 +140,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, type Ref } from 'vue'
 import { Plus, Delete } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { portfolioApi } from '../../api/portfolioApi.js'
 
 /**
  * 作品集类型
@@ -313,24 +315,46 @@ const deletePortfolio = (portfolio: Portfolio): void => {
   }
 }
 
-const handleImageUpload = (file: { raw: File }): void => {
-  const reader = new FileReader()
-  reader.onload = e => {
-    if (!currentPortfolio.value.images) {
-      currentPortfolio.value.images = []
-    }
+const handleImageUpload = async (options: any): Promise<void> => {
+  const { file, onSuccess, onError } = options
+  
+  if (!currentPortfolio.value.id) {
+    ElMessage.warning('请先保存作品集')
+    onError?.(new Error('请先保存作品集'))
+    return
+  }
 
-    if (e.target) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('portfolio_id', String(currentPortfolio.value.id))
+
+  try {
+    const response = await portfolioApi.uploadImageToPortfolio(currentPortfolio.value.id, formData)
+    
+    if (response.images && response.images.length > 0) {
+      const uploadedImage = response.images[0]
+      
+      if (!currentPortfolio.value.images) {
+        currentPortfolio.value.images = []
+      }
+
       const newImage: PortfolioImage = {
-        id: currentPortfolio.value.images.length + 1,
-        url: e.target.result as string,
-        sort_order: currentPortfolio.value.images.length + 1,
+        id: uploadedImage.id,
+        url: uploadedImage.filepath,
+        thumbnail_path: uploadedImage.thumbnail_path,
+        sort_order: uploadedImage.sort_order,
       }
       currentPortfolio.value.images.push(newImage)
       currentPortfolio.value.image_count = currentPortfolio.value.images.length
+      
+      ElMessage.success('图片上传成功')
+      onSuccess?.(response)
     }
+  } catch (error) {
+    console.error('上传图片失败:', error)
+    ElMessage.error('上传图片失败')
+    onError?.(error)
   }
-  reader.readAsDataURL(file.raw)
 }
 
 const deleteImage = (index: number): void => {

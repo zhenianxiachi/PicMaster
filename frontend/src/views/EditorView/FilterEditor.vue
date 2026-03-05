@@ -95,59 +95,50 @@
         </div>
 
         <div class="action-buttons">
-          <el-button @click="undo" :disabled="!canUndo" class="action-btn">
-            <el-icon><Back /></el-icon>
-            撤销
-          </el-button>
-          <el-button @click="redo" :disabled="!canRedo" class="action-btn">
-            <el-icon><Right /></el-icon>
-            重做
-          </el-button>
           <el-button @click="resetFilters" class="action-btn">重置</el-button>
           <el-button @click="showSaveToPortfolioDialog = true" class="action-btn">
             保存到作品集
           </el-button>
-          <el-button type="primary" @click="saveImage" class="action-btn primary">
+ <el-button type="primary" @click="showSaveOptionsDialog = true" class="action-btn primary">
             保存图片
           </el-button>
         </div>
         
-        <!-- 高级工具标签页 -->
-        <div class="advanced-tools">
-          <el-tabs v-model="activeToolTab">
-            <el-tab-pane label="曲线" name="curves">
-              <CurvesEditor @apply-curve="applyCurve" />
-            </el-tab-pane>
-            <el-tab-pane label="HSL" name="hsl">
-              <HSLEditor ref="hslEditorRef" @apply-h-s-l="applyHSL" />
-            </el-tab-pane>
-          </el-tabs>
-        </div>
-        
-        <!-- 历史记录面板 -->
-        <div class="history-panel" v-if="showHistoryPanel">
-          <div class="history-header">
-            <span>历史记录</span>
-            <el-button text size="small" @click="showHistoryPanel = false">
-              <el-icon><Close /></el-icon>
-            </el-button>
+        <!-- HSL高级调节开关 -->
+        <div class="hsl-section">
+          <div class="hsl-toggle">
+            <h4 class="section-title">HSL 高级调节</h4>
+            <el-switch v-model="hslEnabled" active-text="开启" inactive-text="关闭" />
           </div>
-          <div class="history-list">
-            <div 
-              v-for="(state, index) in historyList" 
-              :key="state.id"
-              class="history-item"
-              :class="{ active: index === currentHistoryIndex }"
-              @click="jumpToHistory(index)"
-            >
-              <span class="history-index">{{ index + 1 }}</span>
-              <span class="history-desc">{{ state.description }}</span>
-              <span class="history-time">{{ formatTime(state.timestamp) }}</span>
-            </div>
-          </div>
+          <HSLEditor v-if="hslEnabled" ref="hslEditorRef" @apply-h-s-l="applyHSL" />
         </div>
       </div>
     </div>
+  
+    <!-- 保存选项对话框 -->
+    <el-dialog
+      v-model="showSaveOptionsDialog"
+      title="保存选项"
+      width="400px"
+      class="save-options-dialog"
+    >
+      <div class="save-options">
+        <div class="option-item" @click="saveImage('lossless')">
+          <div class="option-icon">📷</div>
+          <div class="option-content">
+            <div class="option-title">无损保存</div>
+            <div class="option-desc">PNG格式，保留完整画质，文件较大</div>
+          </div>
+        </div>
+        <div class="option-item" @click="saveImage('compressed')">
+          <div class="option-icon">📦</div>
+          <div class="option-content">
+            <div class="option-title">压缩保存</div>
+            <div class="option-desc">JPEG格式，文件较小，画质略有损失</div>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
   
     <!-- 保存到作品集对话框 -->
     <el-dialog
@@ -191,10 +182,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick, onUnmounted, type Ref, computed } from 'vue'
+import { ref, onMounted, watch, nextTick, onUnmounted, type Ref } from 'vue'
 import { fabric } from 'fabric'
 import { ElMessage } from 'element-plus'
-import { MagicStick, Loading, InfoFilled, Back, Right, Close } from '@element-plus/icons-vue'
+import { MagicStick, Loading, InfoFilled } from '@element-plus/icons-vue'
 import { portfolioApi } from '../../api/portfolioApi.js'
 import { errorHandler } from '../../utils/errorHandler'
 import { logger } from '../../utils/logger'
@@ -203,9 +194,7 @@ import {
   applyBlur, 
   type FilterParams as CustomFilterParams 
 } from '../../utils/imageFilters'
-import { historyManager, type HistoryState } from '../../utils/historyManager'
 import config from '../../config'
-import CurvesEditor from '../../components/CurvesEditor.vue'
 import HSLEditor from '../../components/HSLEditor.vue'
 
 interface FilterEditorProps {
@@ -265,6 +254,7 @@ const originalHeight = ref<number>(0)
 
 const portfolios = ref<any[]>([])
 const showSaveToPortfolioDialog = ref<boolean>(false)
+const showSaveOptionsDialog = ref<boolean>(false)
 const selectedSavePortfolioId = ref<number | null>(null)
 
 const previewCanvasRefs: Ref<Map<string, HTMLCanvasElement>> = ref(new Map())
@@ -323,15 +313,9 @@ const aiSuggestions = [
   '风景增强',
 ]
 
-const activeToolTab = ref('curves')
-const showHistoryPanel = ref(false)
-const historyList = computed(() => historyManager.getHistory())
-const currentHistoryIndex = computed(() => historyManager.getCurrentIndex())
-const canUndo = computed(() => historyManager.canUndo())
-const canRedo = computed(() => historyManager.canRedo())
-
 const hslEditorRef = ref<InstanceType<typeof HSLEditor> | null>(null)
 const hslValues = ref<Record<string, { hue: number; saturation: number; lightness: number }>>({})
+const hslEnabled = ref(false)
 
 let applyFiltersTimeout: number | null = null
 
@@ -483,6 +467,7 @@ const createProcessedPreviewCanvas = (
     tint: filterParams.value.tint,
     vignette: filterParams.value.vignette,
     clarity: filterParams.value.clarity,
+    hsl: hslEnabled.value ? hslValues.value : undefined
   }
   
   const processedData = applyAllFilters(imageData, customParams)
@@ -585,8 +570,6 @@ const applyFilters = (): void => {
   if (objects.length === 0) return
 
   const fabricImg = objects[0] as fabric.Image
-  const currentLeft = fabricImg.left || 0
-  const currentTop = fabricImg.top || 0
 
   const previewContainer = document.querySelector('.preview-container') as HTMLElement
   const containerWidth = previewContainer.clientWidth
@@ -605,23 +588,9 @@ const applyFilters = (): void => {
     displayHeight
   )
 
-  fabric.Image.fromURL(
-    processedCanvas.toDataURL(),
-    (newFabricImg) => {
-      if (!newFabricImg || !canvas.value) return
-
-      newFabricImg.set({
-        left: currentLeft,
-        top: currentTop,
-        selectable: true,
-      })
-
-      canvas.value.remove(fabricImg)
-      canvas.value.add(newFabricImg)
-      canvas.value.renderAll()
-    },
-    { crossOrigin: 'anonymous' }
-  )
+  fabricImg.setSrc(processedCanvas.toDataURL(), () => {
+    canvas.value?.renderAll()
+  }, { crossOrigin: 'anonymous' })
 }
 
 const applyPreset = (preset: FilterPreset): void => {
@@ -662,67 +631,7 @@ const resetFilters = (): void => {
   }
   activePresetName.value = '原图'
   aiExplanation.value = ''
-  saveHistory('重置滤镜')
   applyFilters()
-}
-
-const saveHistory = (description: string): void => {
-  const params = { ...filterParams.value }
-  historyManager.pushState(params, description)
-}
-
-const undo = (): void => {
-  const state = historyManager.undo()
-  if (state) {
-    filterParams.value = { ...state.params } as LocalFilterParams
-    applyFilters()
-    ElMessage.success('已撤销')
-  }
-}
-
-const redo = (): void => {
-  const state = historyManager.redo()
-  if (state) {
-    filterParams.value = { ...state.params } as LocalFilterParams
-    applyFilters()
-    ElMessage.success('已重做')
-  }
-}
-
-const jumpToHistory = (index: number): void => {
-  const state = historyManager.jumpToState(index)
-  if (state) {
-    filterParams.value = { ...state.params } as LocalFilterParams
-    applyFilters()
-  }
-}
-
-const formatTime = (timestamp: number): string => {
-  const date = new Date(timestamp)
-  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-}
-
-const applyCurve = (curveData: { channel: string; points: any[]; lut: number[] }): void => {
-  saveHistory(`曲线调整 - ${curveData.channel.toUpperCase()}`)
-  ElMessage.success('曲线已应用')
-}
-
-const applyHSL = (hslData: Record<string, { hue: number; saturation: number; lightness: number }>): void => {
-  hslValues.value = { ...hslData }
-  saveHistory('HSL调整')
-  ElMessage.success('HSL已应用')
-}
-
-const handleKeyDown = (e: KeyboardEvent): void => {
-  if (e.ctrlKey || e.metaKey) {
-    if (e.key === 'z') {
-      e.preventDefault()
-      undo()
-    } else if (e.key === 'y') {
-      e.preventDefault()
-      redo()
-    }
-  }
 }
 
 const applyAIAdjustment = async (): Promise<void> => {
@@ -799,6 +708,12 @@ const applyAIAdjustment = async (): Promise<void> => {
   }
 }
 
+const applyHSL = (data: Record<string, { hue: number; saturation: number; lightness: number }>): void => {
+  hslValues.value = { ...data }
+  applyFilters()
+  ElMessage.success('HSL已应用')
+}
+
 const fetchPortfolios = async (): Promise<void> => {
   try {
     const portfoliosData = await portfolioApi.getPortfolios()
@@ -812,17 +727,26 @@ const selectSavePortfolio = (portfolioId: number): void => {
   selectedSavePortfolioId.value = portfolioId
 }
 
-const createOriginalSizeProcessedImage = async (): Promise<HTMLCanvasElement | null> => {
+const createOriginalSizeProcessedImage = async (maxSize: number = 0): Promise<HTMLCanvasElement | null> => {
   if (!originalImageElement.value) return null
 
+  let processWidth = originalWidth.value
+  let processHeight = originalHeight.value
+  
+  if (maxSize > 0 && (originalWidth.value > maxSize || originalHeight.value > maxSize)) {
+    const scale = maxSize / Math.max(originalWidth.value, originalHeight.value)
+    processWidth = Math.round(originalWidth.value * scale)
+    processHeight = Math.round(originalHeight.value * scale)
+  }
+
   const tempCanvas = document.createElement('canvas')
-  tempCanvas.width = originalWidth.value
-  tempCanvas.height = originalHeight.value
+  tempCanvas.width = processWidth
+  tempCanvas.height = processHeight
   const tempCtx = tempCanvas.getContext('2d')!
   
-  tempCtx.drawImage(originalImageElement.value, 0, 0, originalWidth.value, originalHeight.value)
+  tempCtx.drawImage(originalImageElement.value, 0, 0, processWidth, processHeight)
   
-  const imageData = tempCtx.getImageData(0, 0, originalWidth.value, originalHeight.value)
+  const imageData = tempCtx.getImageData(0, 0, processWidth, processHeight)
   const customParams: CustomFilterParams = {
     brightness: filterParams.value.brightness,
     contrast: filterParams.value.contrast,
@@ -837,6 +761,7 @@ const createOriginalSizeProcessedImage = async (): Promise<HTMLCanvasElement | n
     tint: filterParams.value.tint,
     vignette: filterParams.value.vignette,
     clarity: filterParams.value.clarity,
+    hsl: hslEnabled.value ? hslValues.value : undefined
   }
   
   const processedData = applyAllFilters(imageData, customParams)
@@ -887,23 +812,57 @@ const saveToPortfolio = async (): Promise<void> => {
   }
 }
 
-const saveImage = async (): Promise<void> => {
+const saveImage = async (mode: 'lossless' | 'compressed'): Promise<void> => {
+  showSaveOptionsDialog.value = false
+  
+  const loadingMsg = ElMessage({
+    message: '正在处理图片，请稍候...',
+    type: 'info',
+    duration: 0,
+    iconClass: 'el-icon-loading'
+  })
+  
   try {
-    const processedCanvas = await createOriginalSizeProcessedImage()
+    await new Promise(resolve => setTimeout(resolve, 50))
+    
+    let maxSize = 0
+    if (mode === 'compressed') {
+      maxSize = 4000
+    }
+    
+    const processedCanvas = await createOriginalSizeProcessedImage(maxSize)
     if (!processedCanvas) {
+      loadingMsg.close()
       ElMessage.error('图片处理失败')
       return
     }
 
-    const dataURL = processedCanvas.toDataURL('image/png', 1.0)
+    const outputWidth = processedCanvas.width
+    const outputHeight = processedCanvas.height
 
-    const link = document.createElement('a')
-    link.download = `edited_image_${originalWidth.value}x${originalHeight.value}.png`
-    link.href = dataURL
-    link.click()
+    if (mode === 'lossless') {
+      loadingMsg.close()
+      
+      const dataURL = processedCanvas.toDataURL('image/png', 1.0)
+      const link = document.createElement('a')
+      link.download = `edited_image_${outputWidth}x${outputHeight}_lossless.png`
+      link.href = dataURL
+      link.click()
 
-    ElMessage.success(`图片保存成功 (${originalWidth.value}x${originalHeight.value})`)
+      ElMessage.success(`无损保存成功 (${outputWidth}x${outputHeight})`)
+    } else {
+      loadingMsg.close()
+      
+      const dataURL = processedCanvas.toDataURL('image/jpeg', 0.92)
+      const link = document.createElement('a')
+      link.download = `edited_image_${outputWidth}x${outputHeight}.jpg`
+      link.href = dataURL
+      link.click()
+
+      ElMessage.success(`压缩保存成功 (${outputWidth}x${outputHeight})`)
+    }
   } catch (error) {
+    loadingMsg.close()
     logger.error('保存图片失败:', error)
     ElMessage.error('保存图片失败')
   }
@@ -938,7 +897,6 @@ const handleResize = (): void => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
-  window.removeEventListener('keydown', handleKeyDown)
   
   if (applyFiltersTimeout) {
     clearTimeout(applyFiltersTimeout)
@@ -955,8 +913,6 @@ onUnmounted(() => {
   if (canvasRef.value) {
     canvasRef.value = null
   }
-  
-  historyManager.clear()
   
   logger.log('FilterEditor组件已清理，释放内存资源')
 })
@@ -975,10 +931,6 @@ watch(
 onMounted(() => {
   initCanvas()
   window.addEventListener('resize', handleResize)
-  window.addEventListener('keydown', handleKeyDown)
-  
-  historyManager.clear()
-  saveHistory('初始状态')
 
   if (props.imageUrl) {
     setTimeout(() => {
@@ -1385,114 +1337,73 @@ onMounted(() => {
   border-color: #0077ed;
 }
 
-.advanced-tools {
-  margin-top: 16px;
-  padding-top: 16px;
+.hsl-section {
+  margin-top: 24px;
+  padding-top: 24px;
   border-top: 1px solid #e5e5ea;
 }
 
-.advanced-tools :deep(.el-tabs__header) {
-  margin-bottom: 12px;
-}
-
-.advanced-tools :deep(.el-tabs__item) {
-  font-size: 13px;
-  color: #666;
-}
-
-.advanced-tools :deep(.el-tabs__item.is-active) {
-  color: #0071e3;
-  font-weight: 500;
-}
-
-.history-panel {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 280px;
-  height: 100%;
-  background-color: white;
-  box-shadow: 5px 0 25px rgba(0, 0, 0, 0.1);
-  z-index: 101;
-  display: flex;
-  flex-direction: column;
-  animation: slideInLeft 0.3s ease;
-}
-
-@keyframes slideInLeft {
-  from {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-.history-header {
+.hsl-toggle {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #e5e5ea;
+  margin-bottom: 16px;
+}
+
+.hsl-section .section-title {
+  font-size: 16px;
   font-weight: 600;
   color: #1d1d1f;
+  margin-bottom: 0;
 }
 
-.history-header .el-button {
-  padding: 4px;
-}
+.save-options-dialog {
+  .save-options {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
 
-.history-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px;
-}
+  .option-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid #e5e5ea;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
 
-.history-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-}
+    &:hover {
+      border-color: #0071e3;
+      background-color: #f0f7ff;
+    }
+  }
 
-.history-item:hover {
-  background-color: #f5f5f7;
-}
+  .option-icon {
+    font-size: 32px;
+  }
 
-.history-item.active {
-  background-color: #f0f7ff;
-  border-color: #0071e3;
-}
+  .option-content {
+    flex: 1;
+  }
 
-.history-index {
-  font-size: 11px;
-  color: #999;
-}
+  .option-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1d1d1f;
+    margin-bottom: 4px;
+  }
 
-.history-desc {
-  font-size: 13px;
-  color: #1d1d1f;
-  font-weight: 500;
-}
-
-.history-time {
-  font-size: 11px;
-  color: #999;
+  .option-desc {
+    font-size: 13px;
+    color: #86868b;
+  }
 }
 
 @media (max-width: 1024px) {
   .filter-panel {
     width: 350px;
-  }
-  
-  .history-panel {
-    width: 240px;
   }
 }
 

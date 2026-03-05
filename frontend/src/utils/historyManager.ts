@@ -39,7 +39,9 @@ export class HistoryManager {
 
   undo(): HistoryState | null {
     if (!this.canUndo()) return null
-    this.currentIndex--
+    if (this.currentIndex > 0) {
+      this.currentIndex--
+    }
     return this.history[this.currentIndex] ?? null
   }
 
@@ -50,7 +52,7 @@ export class HistoryManager {
   }
 
   canUndo(): boolean {
-    return this.currentIndex > 0
+    return this.currentIndex >= 0 && this.history.length > 1
   }
 
   canRedo(): boolean {

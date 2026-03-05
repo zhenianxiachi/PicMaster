@@ -78,7 +78,7 @@
           <el-upload
             :show-file-list="false"
             :before-upload="handleWatermarkUpload"
-            accept="image/*"
+            accept="image/*,.raf,.cr2,.nef,.arw,.dng,.raw"
           >
             <el-button size="small">上传水印图片</el-button>
           </el-upload>

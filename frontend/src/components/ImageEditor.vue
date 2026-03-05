@@ -8,7 +8,7 @@
           :auto-upload="false"
           :multiple="true"
           :drag="true"
-          accept=".jpg,.jpeg,.png,.gif,.bmp"
+          accept=".jpg,.jpeg,.png,.gif,.bmp,.raf,.cr2,.nef,.arw,.dng,.raw"
           :on-change="handleFileChange"
         >
           <el-icon-upload class="upload-icon" />

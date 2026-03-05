@@ -12,6 +12,7 @@ export interface FilterParams {
   tint: number
   vignette: number
   clarity: number
+  hsl?: Record<string, { hue: number; saturation: number; lightness: number }>
 }
 
 export function applyAllFilters(
@@ -22,18 +23,22 @@ export function applyAllFilters(
   const width = imageData.width
   const height = imageData.height
 
-  applyBrightness(data, params.brightness)
-  applyContrast(data, params.contrast)
-  applySaturation(data, params.saturation)
-  applyHueRotation(data, params.hue)
-  applyExposure(data, params.exposure)
-  applyHighlights(data, params.highlights)
-  applyShadows(data, params.shadows)
-  applyTemperature(data, params.temperature)
-  applyTint(data, params.tint)
-  applyClarity(data, width, height, params.clarity)
-  applySharpness(data, width, height, params.sharpness)
-  applyVignette(data, width, height, params.vignette)
+  if (params.brightness !== 0) applyBrightness(data, params.brightness)
+  if (params.contrast !== 100) applyContrast(data, params.contrast)
+  if (params.saturation !== 100) applySaturation(data, params.saturation)
+  if (params.hue !== 0) applyHueRotation(data, params.hue)
+  if (params.exposure !== 0) applyExposure(data, params.exposure)
+  if (params.highlights !== 0) applyHighlights(data, params.highlights)
+  if (params.shadows !== 0) applyShadows(data, params.shadows)
+  if (params.temperature !== 0) applyTemperature(data, params.temperature)
+  if (params.tint !== 0) applyTint(data, params.tint)
+  if (params.clarity !== 0) applyClarity(data, width, height, params.clarity)
+  if (params.sharpness !== 0) applySharpness(data, width, height, params.sharpness)
+  if (params.vignette !== 0) applyVignette(data, width, height, params.vignette)
+  
+  if (params.hsl) {
+    applyHSLAdjustment(data, params.hsl)
+  }
 
   return new ImageData(data, width, height)
 }
@@ -389,4 +394,124 @@ export async function processImageWithFilters(
   }
   
   return canvas
+}
+
+interface HSLColor {
+  hue: number
+  saturation: number
+  lightness: number
+}
+
+function applyHSLAdjustment(
+  data: Uint8ClampedArray,
+  hslParams: Record<string, HSLColor>
+): void {
+  let hasAdjustment = false
+  for (const colorName in hslParams) {
+    const adj = hslParams[colorName]
+    if (adj && (adj.hue !== 0 || adj.saturation !== 0 || adj.lightness !== 0)) {
+      hasAdjustment = true
+      break
+    }
+  }
+  
+  if (!hasAdjustment) return
+
+  const colorRanges: Array<{name: string; min: number; max: number}> = [
+    { name: 'red', min: -15, max: 15 },
+    { name: 'orange', min: 15, max: 45 },
+    { name: 'yellow', min: 45, max: 75 },
+    { name: 'green', min: 75, max: 150 },
+    { name: 'cyan', min: 150, max: 195 },
+    { name: 'blue', min: 195, max: 255 },
+    { name: 'purple', min: 255, max: 285 },
+    { name: 'magenta', min: 285, max: 345 }
+  ]
+
+  const len = data.length
+  for (let i = 0; i < len; i += 4) {
+    const r = getPixel(data, i)
+    const g = getPixel(data, i + 1)
+    const b = getPixel(data, i + 2)
+
+    const [h, s, l] = rgbToHsl(r, g, b)
+    const hueDegrees = h * 360
+
+    let normalizedHue = hueDegrees >= 345 ? hueDegrees - 360 : hueDegrees
+
+    for (const range of colorRanges) {
+      const hslAdjust = hslParams[range.name]
+      if (!hslAdjust) continue
+      if (hslAdjust.hue === 0 && hslAdjust.saturation === 0 && hslAdjust.lightness === 0) continue
+
+      if (normalizedHue >= range.min && normalizedHue < range.max) {
+        const newH = ((h * 360 + hslAdjust.hue) % 360) / 360
+        const newS = Math.max(0, Math.min(1, s + hslAdjust.saturation / 100))
+        const newL = Math.max(0, Math.min(1, l + hslAdjust.lightness / 100))
+
+        const [newR, newG, newB] = hslToRgb(newH, newS, newL)
+
+        setPixel(data, i, newR)
+        setPixel(data, i + 1, newG)
+        setPixel(data, i + 2, newB)
+        break
+      }
+    }
+  }
+}
+
+function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  r /= 255
+  g /= 255
+  b /= 255
+
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  let h = 0
+  let s = 0
+  const l = (max + min) / 2
+
+  if (max !== min) {
+    const d = max - min
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+
+    switch (max) {
+      case r:
+        h = ((g - b) / d + (g < b ? 6 : 0)) / 6
+        break
+      case g:
+        h = ((b - r) / d + 2) / 6
+        break
+      case b:
+        h = ((r - g) / d + 4) / 6
+        break
+    }
+  }
+
+  return [h, s, l]
+}
+
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  let r: number, g: number, b: number
+
+  if (s === 0) {
+    r = g = b = l
+  } else {
+    const hue2rgb = (p: number, q: number, t: number): number => {
+      if (t < 0) t += 1
+      if (t > 1) t -= 1
+      if (t < 1 / 6) return p + (q - p) * 6 * t
+      if (t < 1 / 2) return q
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6
+      return p
+    }
+
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s
+    const p = 2 * l - q
+    r = hue2rgb(p, q, h + 1 / 3)
+    g = hue2rgb(p, q, h)
+    b = hue2rgb(p, q, h - 1 / 3)
+  }
+
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)]
 }

@@ -2,16 +2,6 @@
   <div class="hsl-editor">
     <div class="hsl-header">
       <span class="hsl-title">HSL 高级调节</span>
-      <el-switch v-model="targetMode" active-text="目标调整" inactive-text="滑块调整" />
-    </div>
-    
-    <div v-if="targetMode" class="target-mode">
-      <p class="target-hint">点击图片中的颜色区域进行选择</p>
-      <div class="target-color" v-if="selectedColor">
-        <span class="color-label">已选颜色：</span>
-        <span class="color-preview" :style="{ backgroundColor: selectedColorHex }"></span>
-        <span class="color-name">{{ selectedColorName }}</span>
-      </div>
     </div>
     
     <div class="hsl-controls">
@@ -88,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive } from 'vue'
 
 interface HSLValue {
   hue: number
@@ -105,9 +95,7 @@ const emit = defineEmits<{
   applyHSL: [hslData: Record<string, HSLValue>]
 }>()
 
-const targetMode = ref(false)
 const selectedColorName = ref<string | null>(null)
-const selectedColorHex = ref<string>('#ffffff')
 
 const hslColors = [
   { name: 'red', displayName: '红色', hex: '#ff0000', hueRange: [-15, 15] },
@@ -188,10 +176,6 @@ const hslPresets: HSLPreset[] = [
 
 const selectColor = (colorName: string) => {
   selectedColorName.value = colorName
-  const color = hslColors.find(c => c.name === colorName)
-  if (color) {
-    selectedColorHex.value = color.hex
-  }
 }
 
 const applyPreset = (preset: HSLPreset) => {
@@ -215,47 +199,6 @@ const emitChange = () => {
 const applyHSL = () => {
   emit('applyHSL', JSON.parse(JSON.stringify(hslValues)))
 }
-
-const detectColorFromPixel = (r: number, g: number, b: number) => {
-  const max = Math.max(r, g, b)
-  const min = Math.min(r, g, b)
-  const l = (max + min) / 2 / 255
-  
-  let h = 0
-  let s = 0
-  
-  if (max !== min) {
-    const d = max - min
-    s = l > 0.5 ? d / (510 - max - min) : d / (max + min)
-    
-    switch (max) {
-      case r:
-        h = ((g - b) / d + (g < b ? 6 : 0)) / 6
-        break
-      case g:
-        h = ((b - r) / d + 2) / 6
-        break
-      case b:
-        h = ((r - g) / d + 4) / 6
-        break
-    }
-  }
-  
-  const hue = h * 360
-  
-  for (const color of hslColors) {
-    if (hue >= color.hueRange[0] && hue < color.hueRange[1]) {
-      return color.name
-    }
-  }
-  
-  return 'red'
-}
-
-defineExpose({
-  detectColorFromPixel,
-  selectColor
-})
 </script>
 
 <style scoped>
@@ -276,42 +219,6 @@ defineExpose({
 .hsl-title {
   font-size: 14px;
   font-weight: 600;
-}
-
-.target-mode {
-  background-color: #252525;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 16px;
-}
-
-.target-hint {
-  font-size: 12px;
-  color: #999;
-  margin: 0 0 8px 0;
-}
-
-.target-color {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.color-label {
-  font-size: 12px;
-  color: #ccc;
-}
-
-.color-preview {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  border: 1px solid #444;
-}
-
-.color-name {
-  font-size: 12px;
-  font-weight: 500;
 }
 
 .hsl-controls {
@@ -350,6 +257,8 @@ defineExpose({
 .color-header .color-preview {
   width: 16px;
   height: 16px;
+  border-radius: 4px;
+  border: 1px solid #444;
 }
 
 .color-header .color-name {
