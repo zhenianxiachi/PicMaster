@@ -261,15 +261,30 @@ const savePortfolio = () => {
   if (isEditing.value) {
     const index = portfolios.value.findIndex(p => p.id === currentPortfolioId.value)
     if (index !== -1) {
-      portfolios.value[index] = { ...portfolios.value[index], ...portfolioForm }
+      const existingPortfolio = portfolios.value[index]
+      portfolios.value[index] = { 
+        ...existingPortfolio, 
+        name: portfolioForm.name,
+        client_name: portfolioForm.client_name,
+        shoot_date: portfolioForm.shoot_date,
+        category_id: portfolioForm.category_id,
+        tags: portfolioForm.tag_ids
+      }
     }
   } else {
-    const newPortfolio = {
+    const newPortfolio: Portfolio = {
       id: portfolios.value.length + 1,
-      ...portfolioForm,
-      image_count: 0,
-      created_at: new Date().toLocaleString(),
+      name: portfolioForm.name,
+      client_name: portfolioForm.client_name,
+      shoot_date: portfolioForm.shoot_date,
+      category_id: portfolioForm.category_id,
+      tags: portfolioForm.tag_ids,
+      cover_image: null,
+      user_id: 1,
       images: [],
+      created_at: new Date().toLocaleString(),
+      updated_at: new Date().toLocaleString(),
+      image_count: 0
     }
     portfolios.value.push(newPortfolio)
   }

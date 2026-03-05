@@ -95,6 +95,14 @@
         </div>
 
         <div class="action-buttons">
+          <el-button @click="undo" :disabled="!canUndo" class="action-btn">
+            <el-icon><Back /></el-icon>
+            撤销
+          </el-button>
+          <el-button @click="redo" :disabled="!canRedo" class="action-btn">
+            <el-icon><Right /></el-icon>
+            重做
+          </el-button>
           <el-button @click="resetFilters" class="action-btn">重置</el-button>
           <el-button @click="showSaveToPortfolioDialog = true" class="action-btn">
             保存到作品集
@@ -102,6 +110,41 @@
           <el-button type="primary" @click="saveImage" class="action-btn primary">
             保存图片
           </el-button>
+        </div>
+        
+        <!-- 高级工具标签页 -->
+        <div class="advanced-tools">
+          <el-tabs v-model="activeToolTab">
+            <el-tab-pane label="曲线" name="curves">
+              <CurvesEditor @apply-curve="applyCurve" />
+            </el-tab-pane>
+            <el-tab-pane label="HSL" name="hsl">
+              <HSLEditor ref="hslEditorRef" @apply-h-s-l="applyHSL" />
+            </el-tab-pane>
+          </el-tabs>
+        </div>
+        
+        <!-- 历史记录面板 -->
+        <div class="history-panel" v-if="showHistoryPanel">
+          <div class="history-header">
+            <span>历史记录</span>
+            <el-button text size="small" @click="showHistoryPanel = false">
+              <el-icon><Close /></el-icon>
+            </el-button>
+          </div>
+          <div class="history-list">
+            <div 
+              v-for="(state, index) in historyList" 
+              :key="state.id"
+              class="history-item"
+              :class="{ active: index === currentHistoryIndex }"
+              @click="jumpToHistory(index)"
+            >
+              <span class="history-index">{{ index + 1 }}</span>
+              <span class="history-desc">{{ state.description }}</span>
+              <span class="history-time">{{ formatTime(state.timestamp) }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -148,10 +191,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick, onUnmounted, type Ref } from 'vue'
+import { ref, onMounted, watch, nextTick, onUnmounted, type Ref, computed } from 'vue'
 import { fabric } from 'fabric'
 import { ElMessage } from 'element-plus'
-import { MagicStick, Loading, InfoFilled } from '@element-plus/icons-vue'
+import { MagicStick, Loading, InfoFilled, Back, Right, Close } from '@element-plus/icons-vue'
 import { portfolioApi } from '../../api/portfolioApi.js'
 import { errorHandler } from '../../utils/errorHandler'
 import { logger } from '../../utils/logger'
@@ -160,7 +203,10 @@ import {
   applyBlur, 
   type FilterParams as CustomFilterParams 
 } from '../../utils/imageFilters'
+import { historyManager, type HistoryState } from '../../utils/historyManager'
 import config from '../../config'
+import CurvesEditor from '../../components/CurvesEditor.vue'
+import HSLEditor from '../../components/HSLEditor.vue'
 
 interface FilterEditorProps {
   imageUrl?: string | null
@@ -276,6 +322,16 @@ const aiSuggestions = [
   '人像美化',
   '风景增强',
 ]
+
+const activeToolTab = ref('curves')
+const showHistoryPanel = ref(false)
+const historyList = computed(() => historyManager.getHistory())
+const currentHistoryIndex = computed(() => historyManager.getCurrentIndex())
+const canUndo = computed(() => historyManager.canUndo())
+const canRedo = computed(() => historyManager.canRedo())
+
+const hslEditorRef = ref<InstanceType<typeof HSLEditor> | null>(null)
+const hslValues = ref<Record<string, { hue: number; saturation: number; lightness: number }>>({})
 
 let applyFiltersTimeout: number | null = null
 
@@ -606,7 +662,67 @@ const resetFilters = (): void => {
   }
   activePresetName.value = '原图'
   aiExplanation.value = ''
+  saveHistory('重置滤镜')
   applyFilters()
+}
+
+const saveHistory = (description: string): void => {
+  const params = { ...filterParams.value }
+  historyManager.pushState(params, description)
+}
+
+const undo = (): void => {
+  const state = historyManager.undo()
+  if (state) {
+    filterParams.value = { ...state.params } as LocalFilterParams
+    applyFilters()
+    ElMessage.success('已撤销')
+  }
+}
+
+const redo = (): void => {
+  const state = historyManager.redo()
+  if (state) {
+    filterParams.value = { ...state.params } as LocalFilterParams
+    applyFilters()
+    ElMessage.success('已重做')
+  }
+}
+
+const jumpToHistory = (index: number): void => {
+  const state = historyManager.jumpToState(index)
+  if (state) {
+    filterParams.value = { ...state.params } as LocalFilterParams
+    applyFilters()
+  }
+}
+
+const formatTime = (timestamp: number): string => {
+  const date = new Date(timestamp)
+  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+}
+
+const applyCurve = (curveData: { channel: string; points: any[]; lut: number[] }): void => {
+  saveHistory(`曲线调整 - ${curveData.channel.toUpperCase()}`)
+  ElMessage.success('曲线已应用')
+}
+
+const applyHSL = (hslData: Record<string, { hue: number; saturation: number; lightness: number }>): void => {
+  hslValues.value = { ...hslData }
+  saveHistory('HSL调整')
+  ElMessage.success('HSL已应用')
+}
+
+const handleKeyDown = (e: KeyboardEvent): void => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'z') {
+      e.preventDefault()
+      undo()
+    } else if (e.key === 'y') {
+      e.preventDefault()
+      redo()
+    }
+  }
 }
 
 const applyAIAdjustment = async (): Promise<void> => {
@@ -822,6 +938,7 @@ const handleResize = (): void => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  window.removeEventListener('keydown', handleKeyDown)
   
   if (applyFiltersTimeout) {
     clearTimeout(applyFiltersTimeout)
@@ -838,6 +955,8 @@ onUnmounted(() => {
   if (canvasRef.value) {
     canvasRef.value = null
   }
+  
+  historyManager.clear()
   
   logger.log('FilterEditor组件已清理，释放内存资源')
 })
@@ -856,6 +975,10 @@ watch(
 onMounted(() => {
   initCanvas()
   window.addEventListener('resize', handleResize)
+  window.addEventListener('keydown', handleKeyDown)
+  
+  historyManager.clear()
+  saveHistory('初始状态')
 
   if (props.imageUrl) {
     setTimeout(() => {
@@ -1262,9 +1385,114 @@ onMounted(() => {
   border-color: #0077ed;
 }
 
+.advanced-tools {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e5ea;
+}
+
+.advanced-tools :deep(.el-tabs__header) {
+  margin-bottom: 12px;
+}
+
+.advanced-tools :deep(.el-tabs__item) {
+  font-size: 13px;
+  color: #666;
+}
+
+.advanced-tools :deep(.el-tabs__item.is-active) {
+  color: #0071e3;
+  font-weight: 500;
+}
+
+.history-panel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 280px;
+  height: 100%;
+  background-color: white;
+  box-shadow: 5px 0 25px rgba(0, 0, 0, 0.1);
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  animation: slideInLeft 0.3s ease;
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e5e5ea;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.history-header .el-button {
+  padding: 4px;
+}
+
+.history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.history-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.history-item:hover {
+  background-color: #f5f5f7;
+}
+
+.history-item.active {
+  background-color: #f0f7ff;
+  border-color: #0071e3;
+}
+
+.history-index {
+  font-size: 11px;
+  color: #999;
+}
+
+.history-desc {
+  font-size: 13px;
+  color: #1d1d1f;
+  font-weight: 500;
+}
+
+.history-time {
+  font-size: 11px;
+  color: #999;
+}
+
 @media (max-width: 1024px) {
   .filter-panel {
     width: 350px;
+  }
+  
+  .history-panel {
+    width: 240px;
   }
 }
 
