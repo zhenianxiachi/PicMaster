@@ -1,88 +1,120 @@
-<template>
-  <div class="viewer-view-container">
-    <div class="hero-section">
-      <h2 class="hero-title">作品集展示</h2>
-      <p class="hero-subtitle">以多种布局方式展示您的精彩作品</p>
-    </div>
+﻿<template>
+  <div class="viewer-view">
+    <section class="hero-banner">
+      <div class="hero-copy">
+        <p class="eyebrow">DELIVERY EXPERIENCE</p>
+        <h1>作品展示与客户预览</h1>
+        <p>
+          用高质量展示界面交付作品，支持二维码分享、全屏预览与 AI 快速调色，提升客户感知与成片价值。
+        </p>
+      </div>
+      <div class="hero-badges">
+        <span>Live Preview</span>
+        <span>AI Assistant</span>
+        <span>QR Sharing</span>
+      </div>
+    </section>
 
-    <div class="content-area">
+    <section class="viewer-shell">
       <PortfolioViewer :initial-portfolio-id="initialPortfolioId" />
-    </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import PortfolioViewer from '@/components/PortfolioViewer.vue'
 
 const initialPortfolioId = ref<number | null>(null)
 
 onMounted(() => {
-  // 从URL参数中获取portfolio_id
   const urlParams = new URLSearchParams(window.location.search)
-  const portfolioIdParam = urlParams.get('portfolio_id')
-  if (portfolioIdParam) {
-    initialPortfolioId.value = parseInt(portfolioIdParam)
+  const rawPortfolioId = urlParams.get('portfolio_id')
+
+  if (!rawPortfolioId) {
+    initialPortfolioId.value = null
+    return
   }
+
+  const parsed = Number.parseInt(rawPortfolioId, 10)
+  initialPortfolioId.value = Number.isNaN(parsed) ? null : parsed
 })
 </script>
 
 <style scoped>
-.viewer-view-container {
-  padding: 0 24px 80px;
-  max-width: 1200px;
+.viewer-view {
+  min-height: calc(100vh - 122px);
+  padding: 22px 24px 56px;
+}
+
+.hero-banner,
+.viewer-shell {
+  max-width: 1320px;
   margin: 0 auto;
-  width: 100%;
 }
 
-.hero-section {
-  text-align: center;
-  padding: 80px 24px 60px;
-  animation: fadeInUp 0.8s ease-out;
+.hero-banner {
+  border: 1px solid var(--pm-border);
+  border-radius: var(--pm-radius-lg);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(15, 124, 207, 0.14), transparent 42%),
+    radial-gradient(circle at 100% 100%, rgba(243, 166, 68, 0.16), transparent 38%),
+    var(--pm-surface);
+  box-shadow: var(--pm-shadow-1);
+  padding: 34px;
+  display: grid;
+  gap: 16px;
 }
 
-.hero-title {
-  font-size: 56px;
+.eyebrow {
+  color: var(--pm-primary);
+  letter-spacing: 0.16em;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.hero-copy h1 {
+  margin-top: 8px;
+  font-size: clamp(28px, 4vw, 46px);
+  line-height: 1.08;
+  color: var(--pm-text);
+}
+
+.hero-copy p {
+  margin-top: 12px;
+  max-width: 760px;
+  color: var(--pm-text-soft);
+  line-height: 1.75;
+  font-size: 15px;
+}
+
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hero-badges span {
+  border: 1px solid #d5c48f;
+  border-radius: 999px;
+  background: #fff6e3;
+  color: #75520b;
+  padding: 6px 12px;
+  font-size: 12px;
   font-weight: 700;
-  color: #1d1d1f;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  margin-bottom: 12px;
 }
 
-.hero-subtitle {
-  font-size: 24px;
-  font-weight: 400;
-  color: #86868b;
-  letter-spacing: 0.01em;
+.viewer-shell {
+  margin-top: 14px;
 }
 
-.content-area {
-  animation: fadeInUp 0.6s ease-out 0.2s both;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (max-width: 768px) {
-  .hero-section {
-    padding: 60px 16px 40px;
+@media (max-width: 760px) {
+  .viewer-view {
+    padding: 16px 14px 40px;
   }
 
-  .hero-title {
-    font-size: 36px;
-  }
-
-  .hero-subtitle {
-    font-size: 18px;
+  .hero-banner {
+    padding: 24px;
   }
 }
 </style>

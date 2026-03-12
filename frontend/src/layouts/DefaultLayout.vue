@@ -1,59 +1,82 @@
 <template>
   <div class="default-layout">
-    <el-container>
-      <el-header class="app-header">
-        <div class="header-content">
-          <h1 class="app-title">
-            <el-icon><Picture class="title-icon" /></el-icon>
-            <router-link to="/" class="app-title-link">PicMaster</router-link>
-          </h1>
-          <div class="header-nav">
-            <router-link v-for="item in menuItems" :key="item.id" :to="item.path" class="nav-item">
-              {{ item.name }}
-            </router-link>
-          </div>
-          <div class="header-actions">
-            <div v-if="authStore.isLoggedIn" class="user-info">
-              <span>{{ authStore.user?.username }}</span>
-              <el-button size="small" @click="authStore.logout">退出</el-button>
-            </div>
-            <el-button v-else link @click="handleLogin">登录</el-button>
+    <div class="utility-bar">
+      <div class="utility-inner">
+        <span class="utility-pill">PicMaster Studio</span>
+        <span class="utility-text">商业级图像编辑与交付工作流</span>
+        <button class="utility-link" @click="usageStore.openUpgradeDialog('daily', 'export-image')">查看 Pro 方案</button>
+      </div>
+    </div>
 
-            <!-- <el-button type="primary" size="large" @click="toggleQuickMode" class="quick-mode-btn">
-              <el-icon><SwitchButton /></el-icon>
-              {{ quickMode ? '退出快编' : '快编模式' }}
-            </el-button> -->
+    <el-header class="app-header">
+      <div class="header-content">
+        <router-link to="/" class="brand">
+          <el-icon class="brand-icon"><Picture /></el-icon>
+          <div class="brand-copy">
+            <strong>PicMaster</strong>
+            <span>Commercial Image Suite</span>
           </div>
+        </router-link>
+
+        <nav class="nav-links">
+          <router-link v-for="item in menuItems" :key="item.id" :to="item.path" class="nav-link">
+            {{ item.name }}
+          </router-link>
+        </nav>
+
+        <div class="header-actions">
+          <div class="quota-badge" :title="usageStore.usageSummary.detail">
+            {{ usageStore.usageSummary.label }}
+          </div>
+
+          <template v-if="authStore.isLoggedIn">
+            <el-tag class="plan-tag" effect="plain">{{ authStore.planLabel }}</el-tag>
+            <span class="username">{{ authStore.user?.username }}</span>
+            <el-button
+              v-if="!authStore.isPro"
+              type="warning"
+              size="small"
+              round
+              @click="usageStore.openUpgradeDialog('daily', 'export-image')"
+            >
+              升级
+            </el-button>
+            <el-button text @click="authStore.logout">退出</el-button>
+          </template>
+
+          <template v-else>
+            <el-button text @click="authStore.openAuthDialog('login')">登录</el-button>
+            <el-button type="primary" round size="small" @click="authStore.openAuthDialog('register')">注册</el-button>
+          </template>
         </div>
-      </el-header>
+      </div>
+    </el-header>
 
-      <el-container>
-        <el-main class="app-main">
-          <slot />
-        </el-main>
-        <el-footer class="app-footer">
-          <div class="footer-content">
-            <p class="footer-text">&copy; 2025 PicMaster. All rights reserved.</p>
-            <div class="footer-links">
-              <a href="#" class="footer-link">隐私政策</a>
-              <a href="#" class="footer-link">使用条款</a>
-              <a href="#" class="footer-link">联系我们</a>
-            </div>
-          </div>
-        </el-footer>
-      </el-container>
-    </el-container>
+    <el-main class="app-main">
+      <slot />
+    </el-main>
+
+    <el-footer class="app-footer">
+      <div class="footer-content">
+        <div class="footer-left">
+          <p class="footer-brand">PicMaster · Built for modern studios</p>
+          <p class="footer-copy">© 2026 PicMaster. All rights reserved.</p>
+        </div>
+        <div class="footer-links">
+          <a href="/privacy-policy" class="footer-link" title="隐私政策">隐私政策</a>
+          <a href="/terms-of-service" class="footer-link" title="服务条款">服务条款</a>
+          <a href="/business-cooperation" class="footer-link" title="商务合作">商务合作</a>
+        </div>
+      </div>
+    </el-footer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Picture, SwitchButton } from '@element-plus/icons-vue'
-import { useAuthStore } from '../store/auth'
+import { Picture } from '@element-plus/icons-vue'
+import { useAuthStore } from '@/store/auth'
+import { useUsageStore } from '@/store/usage'
 
-/**
- * 菜单项接口
- */
 interface MenuItem {
   id: string
   name: string
@@ -61,197 +84,263 @@ interface MenuItem {
 }
 
 const authStore = useAuthStore()
-const quickMode = ref<boolean>(false)
+const usageStore = useUsageStore()
 
 const menuItems: MenuItem[] = [
-  { id: '0', name: '首页', path: '/' },
-  { id: '1', name: '图片编辑', path: '/editor-intro' },
-  { id: '2', name: '作品集管理', path: '/portfolio' },
-  { id: '3', name: '作品集展示', path: '/viewer' },
+  { id: 'home', name: '首页', path: '/' },
+  { id: 'editor', name: '编辑', path: '/editor-intro' },
+  { id: 'portfolio', name: '作品集', path: '/portfolio' },
+  { id: 'viewer', name: '展示', path: '/viewer' },
 ]
-
-const toggleQuickMode = (): void => {
-  quickMode.value = !quickMode.value
-}
-
-const handleLogin = async (): Promise<void> => {
-  // 模拟登录
-  const success = await authStore.login({
-    username: 'testuser',
-    password: 'password',
-  })
-
-  if (success) {
-    console.log('登录成功')
-  } else {
-    console.log('登录失败')
-  }
-}
 </script>
 
 <style scoped>
 .default-layout {
   min-height: 100vh;
-  background-color: #fbfbfd;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.utility-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1400;
+  background: linear-gradient(110deg, #0e2f4e, #1a486f 60%, #0f7ccf);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.utility-inner {
+  max-width: 1320px;
+  margin: 0 auto;
+  height: 44px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #e9f5ff;
+  font-size: 12px;
+}
+
+.utility-pill {
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.utility-text {
+  opacity: 0.92;
+}
+
+.utility-link {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: #fff2ca;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.utility-link:hover {
+  text-decoration: underline;
 }
 
 .app-header {
-  background-color: rgba(251, 251, 253, 0.8);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  height: 72px;
-  display: flex;
-  align-items: center;
   position: sticky;
-  top: 0;
-  z-index: 1000;
+  top: 44px;
+  z-index: 1300;
+  height: 78px;
+  border-bottom: 1px solid var(--pm-border);
+  background: color-mix(in srgb, #ffffff 88%, #eef5fb 12%);
+  backdrop-filter: blur(14px);
 }
 
 .header-content {
-  width: 100%;
-  max-width: 1200px;
+  max-width: 1320px;
   margin: 0 auto;
+  padding: 0 24px;
+  height: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
+  gap: 24px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.brand-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  color: #ffffff;
+  background: linear-gradient(140deg, var(--pm-primary), #16a4cb);
+  box-shadow: 0 8px 20px rgba(15, 124, 207, 0.32);
+}
+
+.brand-copy {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.12;
+}
+
+.brand-copy strong {
+  color: var(--pm-text);
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+.brand-copy span {
+  color: var(--pm-text-soft);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 8px;
+}
+
+.nav-link {
+  padding: 9px 14px;
+  border-radius: 999px;
+  text-decoration: none;
+  color: #355475;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.24s ease;
+}
+
+.nav-link:hover,
+.nav-link.router-link-active {
+  color: var(--pm-primary-deep);
+  background: #e7f3ff;
 }
 
 .header-actions {
+  margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
 }
 
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #1d1d1f;
+.quota-badge {
+  border: 1px solid #c8ddf0;
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: #ecf6ff;
+  color: #23496f;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
-.app-title {
-  font-size: 20px;
+.plan-tag {
+  border-color: #efca86;
+  color: #8c5f08;
+  background: #fff6e6;
+}
+
+.username {
+  max-width: 108px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #3a5573;
+  font-size: 13px;
   font-weight: 600;
-  color: #1d1d1f;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  letter-spacing: -0.02em;
-}
-
-.title-icon {
-  font-size: 24px;
-  color: #0071e3;
-}
-
-.header-nav {
-  display: flex;
-  gap: 32px;
-}
-
-.nav-item {
-  font-size: 14px;
-  font-weight: 400;
-  color: #86868b;
-  text-decoration: none;
-  padding: 8px 0;
-  transition: color 0.3s ease;
-}
-
-.nav-item:hover,
-.nav-item.router-link-active {
-  color: #1d1d1f;
-}
-
-.quick-mode-btn {
-  background-color: #0071e3;
-  border: none;
-  border-radius: 980px;
-  padding: 8px 20px;
-  font-size: 14px;
-  font-weight: 400;
-  color: white;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.quick-mode-btn:hover {
-  background-color: #0077ed;
-  transform: scale(1.02);
 }
 
 .app-main {
   padding: 0;
-  /* max-width: 1200px; */
-  margin: 0 auto;
   width: 100%;
-  min-height: calc(100vh - 72px);
+  flex: 1;
 }
 
 .app-footer {
-  background-color: #ffffff;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: 1px solid var(--pm-border);
+  background: #f6f9fc;
   padding: 20px 0;
   height: auto;
 }
 
 .footer-content {
-  max-width: 1200px;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 0 24px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  gap: 24px;
 }
 
-.footer-text {
-  font-size: 14px;
-  color: #86868b;
-  margin: 0;
+.footer-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.footer-brand {
+  color: #1f3d5d;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.footer-copy {
+  color: #6a8097;
+  font-size: 12px;
 }
 
 .footer-links {
   display: flex;
-  gap: 24px;
+  align-items: center;
+  gap: 18px;
 }
 
 .footer-link {
-  font-size: 14px;
-  color: #86868b;
   text-decoration: none;
-  transition: color 0.3s ease;
+  color: #5c738c;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .footer-link:hover {
-  color: #0071e3;
+  color: var(--pm-primary);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1080px) {
+  .nav-links {
+    display: none;
+  }
+}
+
+@media (max-width: 820px) {
+  .utility-inner,
+  .header-content,
+  .footer-content {
+    padding: 0 14px;
+  }
+
+  .utility-text,
+  .quota-badge,
+  .username {
+    display: none;
+  }
+
   .footer-content {
     flex-direction: column;
+    align-items: flex-start;
     gap: 12px;
-    text-align: center;
-  }
-
-  .footer-links {
-    gap: 16px;
-  }
-}
-
-@media (max-width: 768px) {
-  .header-content {
-    padding: 0 16px;
-  }
-
-  .header-nav {
-    display: none;
   }
 }
 </style>

@@ -18,7 +18,17 @@ const axiosInstance: AxiosInstance = axios.create({
  * 请求拦截器
  */
 axiosInstance.interceptors.request.use(config => {
-  const token = ""
+  let token = ''
+  try {
+    const rawSession = localStorage.getItem('picmaster_session_v2')
+    if (rawSession) {
+      const parsed = JSON.parse(rawSession) as { token?: string }
+      token = parsed.token || ''
+    }
+  } catch {
+    token = ''
+  }
+
   if (token) {
     config.headers = config.headers || {}
     config.headers.Authorization = `Bearer ${token}`

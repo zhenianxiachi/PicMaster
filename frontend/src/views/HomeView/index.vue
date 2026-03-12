@@ -1,279 +1,377 @@
 <template>
-  <div class="home-view-container">
-    <!-- Hero 广告区域 -->
-    <div class="hero-banner">
-      <div class="hero-content">
-        <h1 class="hero-title">PicMaster</h1>
-        <p class="hero-subtitle">专业的图片编辑与作品集管理平台</p>
-        <div class="hero-buttons">
+  <div class="home-view">
+    <section class="hero">
+      <div class="hero-left">
+        <p class="kicker">COMMERCIAL IMAGE PLATFORM</p>
+        <h1>更高级的在线图像编辑体验</h1>
+        <p class="subtitle">
+          从游客试用到 Pro 转化，PicMaster 提供完整运营闭环，兼顾美观界面、专业效率与商业化规则。
+        </p>
+        <div class="hero-actions">
           <button class="btn-primary" @click="goToEditor">开始编辑</button>
-          <button class="btn-secondary" @click="goToViewer">浏览作品</button>
+          <button class="btn-ghost" @click="goToViewer">查看展示页</button>
         </div>
       </div>
-    </div>
 
-    <!-- 特性展示区域 -->
-    <div class="features-section">
-      <div class="feature-card">
-        <div class="feature-icon">🎨</div>
-        <h3 class="feature-title">专业编辑</h3>
-        <p class="feature-desc">强大的图片编辑功能，轻松打造精美作品</p>
+      <div class="hero-right">
+        <div class="showcase-card large">
+          <strong>运营规则</strong>
+          <p>游客试用 {{ TRIAL_USAGE_LIMIT }} 次，注册后每日 {{ FREE_DAILY_USAGE_LIMIT }} 次。</p>
+        </div>
+        <div class="showcase-row">
+          <div class="showcase-card">
+            <strong>账号体系</strong>
+            <p>登录、注册、会话恢复</p>
+          </div>
+          <div class="showcase-card">
+            <strong>升级策略</strong>
+            <p>超限触发升级引导</p>
+          </div>
+        </div>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon">📁</div>
-        <h3 class="feature-title">作品集管理</h3>
-        <p class="feature-desc">创建和管理您的个人作品集，展示创意</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🖼️</div>
-        <h3 class="feature-title">沉浸式浏览</h3>
-        <p class="feature-desc">优雅的作品展示方式，极致的浏览体验</p>
-      </div>
-    </div>
+    </section>
 
-    <!-- 广告宣传语 -->
-    <div class="promo-section">
-      <div class="promo-card">
-        <h2 class="promo-title">立即体验 PicMaster</h2>
-        <p class="promo-desc">发现无限创意可能</p>
+    <section class="metrics">
+      <article v-for="item in metrics" :key="item.label" class="metric-card">
+        <div class="value">{{ item.value }}</div>
+        <div class="label">{{ item.label }}</div>
+        <p>{{ item.desc }}</p>
+      </article>
+    </section>
+
+    <section class="feature-grid">
+      <article class="feature-card">
+        <h3>用户管理</h3>
+        <p>支持登录注册、会话恢复和套餐状态同步。</p>
+      </article>
+      <article class="feature-card">
+        <h3>配额控制</h3>
+        <p>试用次数 + 每日免费额度双策略，防止无限制免费使用。</p>
+      </article>
+      <article class="feature-card">
+        <h3>付费升级</h3>
+        <p>在关键操作点触发升级弹窗，建立稳定转化入口。</p>
+      </article>
+      <article class="feature-card">
+        <h3>高质界面</h3>
+        <p>统一视觉系统，强调专业感、可信度和可读性。</p>
+      </article>
+    </section>
+
+    <section class="plan-panel">
+      <h2>套餐结构</h2>
+      <div class="plans">
+        <article class="plan">
+          <span>{{ PLAN_FEATURES.trial.title }}</span>
+          <strong>{{ TRIAL_USAGE_LIMIT }} 次</strong>
+          <p>{{ PLAN_FEATURES.trial.description }}</p>
+        </article>
+        <article class="plan">
+          <span>{{ PLAN_FEATURES.free.title }}</span>
+          <strong>{{ FREE_DAILY_USAGE_LIMIT }} 次/天</strong>
+          <p>{{ PLAN_FEATURES.free.description }}</p>
+        </article>
+        <article class="plan pro">
+          <span>{{ PLAN_FEATURES.pro.title }}</span>
+          <strong>无限制</strong>
+          <p>{{ PLAN_FEATURES.pro.description }}</p>
+        </article>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { FREE_DAILY_USAGE_LIMIT, PLAN_FEATURES, TRIAL_USAGE_LIMIT } from '@/config/businessRules'
 
 const router = useRouter()
 
-/**
- * 跳转到编辑介绍页面
- */
-function goToEditor(): void {
+const metrics = [
+  { value: '4.8/5', label: '用户体验评分', desc: '编辑效率与视觉体验同时提升' },
+  { value: '99.9%', label: '可用性目标', desc: '面向商业图像交付场景' },
+  { value: '<3s', label: '常规导出耗时', desc: '常见图像尺寸下快速响应' },
+  { value: '3 层', label: '运营漏斗', desc: '试用 → 免费 → Pro 的转化路径' },
+]
+
+const goToEditor = (): void => {
   router.push('/editor-intro')
 }
 
-/**
- * 跳转到作品展示页面
- */
-function goToViewer(): void {
+const goToViewer = (): void => {
   router.push('/viewer')
 }
 </script>
 
 <style scoped>
-.home-view-container {
-  width: 100%;
-  min-height: calc(100vh - 72px);
-  background: #ffffff;
+.home-view {
+  min-height: calc(100vh - 122px);
+  padding: 28px 24px 56px;
 }
 
-/* Hero Banner */
-.hero-banner {
-  min-height: 80vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 24px;
-  background: #f8f9fa;
+.hero,
+.metrics,
+.feature-grid,
+.plan-panel {
+  max-width: 1320px;
+  margin: 0 auto;
 }
 
-.hero-content {
-  text-align: center;
-  max-width: 800px;
-  animation: fadeInUp 1s ease-out;
+.hero {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 16px;
 }
 
-.hero-title {
-  font-size: 72px;
+.hero-left,
+.hero-right {
+  border: 1px solid var(--pm-border);
+  border-radius: var(--pm-radius-lg);
+  background: var(--pm-surface);
+  box-shadow: var(--pm-shadow-1);
+}
+
+.hero-left {
+  padding: 44px;
+}
+
+.kicker {
+  color: var(--pm-primary);
+  font-size: 11px;
+  letter-spacing: 0.14em;
   font-weight: 800;
-  color: #1d1d1f;
+}
+
+.hero-left h1 {
+  margin-top: 14px;
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 1.06;
   letter-spacing: -0.03em;
-  line-height: 1.1;
-  margin-bottom: 24px;
+  color: var(--pm-text);
 }
 
-.hero-subtitle {
-  font-size: 28px;
-  font-weight: 400;
-  color: #86868b;
-  letter-spacing: 0.02em;
-  margin-bottom: 48px;
+.subtitle {
+  margin-top: 16px;
+  color: var(--pm-text-soft);
+  line-height: 1.75;
+  font-size: 17px;
+  max-width: 680px;
 }
 
-.hero-buttons {
+.hero-actions {
+  margin-top: 30px;
   display: flex;
-  gap: 20px;
-  justify-content: center;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .btn-primary,
-.btn-secondary {
-  padding: 16px 40px;
-  font-size: 18px;
-  font-weight: 600;
-  border-radius: 50px;
+.btn-ghost {
+  height: 46px;
+  min-width: 150px;
+  border-radius: 999px;
+  padding: 0 22px;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
-  outline: none;
 }
 
 .btn-primary {
-  background: #007aff;
+  border: 0;
   color: #ffffff;
-  box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);
+  background: linear-gradient(125deg, var(--pm-primary), #17a4cf);
 }
 
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
+.btn-ghost {
+  border: 1px solid #bfd8ec;
+  color: #1f4a73;
+  background: #ecf7ff;
 }
 
-.btn-secondary {
-  background: #ffffff;
-  color: #007aff;
-  border: 2px solid #007aff;
+.hero-right {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(19, 181, 168, 0.12), transparent 46%),
+    var(--pm-surface);
 }
 
-.btn-secondary:hover {
-  background: #f0f7ff;
-  transform: translateY(-2px);
+.showcase-card {
+  border: 1px solid #d3e3f2;
+  border-radius: 14px;
+  background: #f7fbff;
+  padding: 16px;
 }
 
-/* Features Section */
-.features-section {
+.showcase-card.large {
+  min-height: 156px;
+}
+
+.showcase-card strong {
+  display: block;
+  font-size: 20px;
+  color: var(--pm-text);
+}
+
+.showcase-card p {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #5f7893;
+  line-height: 1.65;
+}
+
+.showcase-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 32px;
-  padding: 80px 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.metrics {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metric-card {
+  border: 1px solid var(--pm-border);
+  border-radius: 14px;
+  background: var(--pm-surface);
+  padding: 18px;
+}
+
+.metric-card .value {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--pm-text);
+}
+
+.metric-card .label {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #36587d;
+}
+
+.metric-card p {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #67819b;
+  line-height: 1.55;
+}
+
+.feature-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .feature-card {
-  background: #ffffff;
-  padding: 48px 32px;
+  border: 1px solid var(--pm-border);
+  border-radius: 14px;
+  background: var(--pm-surface);
+  padding: 18px;
+}
+
+.feature-card h3 {
+  font-size: 18px;
+  color: var(--pm-text);
+}
+
+.feature-card p {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--pm-text-soft);
+  line-height: 1.65;
+}
+
+.plan-panel {
+  margin-top: 18px;
+  border: 1px solid var(--pm-border);
   border-radius: 20px;
-  text-align: center;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  animation: fadeInUp 0.8s ease-out 0.2s both;
-  border: 1px solid #e5e5e7;
+  background: var(--pm-surface);
+  padding: 24px;
 }
 
-.feature-card:nth-child(2) {
-  animation-delay: 0.4s;
+.plan-panel h2 {
+  font-size: 28px;
+  color: var(--pm-text);
 }
 
-.feature-card:nth-child(3) {
-  animation-delay: 0.6s;
+.plans {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
-.feature-card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+.plan {
+  border: 1px solid var(--pm-border);
+  border-radius: 14px;
+  padding: 16px;
+  background: #f7fbff;
 }
 
-.feature-icon {
-  font-size: 64px;
-  margin-bottom: 24px;
+.plan.pro {
+  border-color: #efca86;
+  background: linear-gradient(150deg, #fff8ea, #fff3d8);
 }
 
-.feature-title {
-  font-size: 24px;
+.plan span {
+  font-size: 12px;
+  color: #5d758f;
   font-weight: 700;
-  color: #1d1d1f;
-  margin-bottom: 12px;
 }
 
-.feature-desc {
-  font-size: 16px;
-  font-weight: 400;
-  color: #86868b;
+.plan strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 30px;
+  letter-spacing: -0.03em;
+  color: var(--pm-text);
+}
+
+.plan p {
+  margin-top: 10px;
+  font-size: 13px;
   line-height: 1.6;
+  color: #5d758f;
 }
 
-/* Promo Section */
-.promo-section {
-  padding: 60px 24px;
-  max-width: 1200px;
-  margin: 0 auto 80px;
-}
-
-.promo-card {
-  background: #f8f9fa;
-  padding: 60px 40px;
-  border-radius: 20px;
-  text-align: center;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
-  animation: fadeInUp 0.8s ease-out 0.8s both;
-  border: 1px solid #e5e5e7;
-}
-
-.promo-title {
-  font-size: 36px;
-  font-weight: 700;
-  color: #1d1d1f;
-  margin-bottom: 16px;
-}
-
-.promo-desc {
-  font-size: 24px;
-  font-weight: 400;
-  color: #86868b;
-}
-
-/* Animations */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+@media (max-width: 1120px) {
+  .metrics,
+  .feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .hero-banner {
-    min-height: 70vh;
-    padding: 32px 16px;
-  }
-
-  .hero-title {
-    font-size: 48px;
-  }
-
-  .hero-subtitle {
-    font-size: 20px;
-  }
-
-  .hero-buttons {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .btn-primary,
-  .btn-secondary {
-    width: 100%;
-    max-width: 280px;
-  }
-
-  .features-section {
+@media (max-width: 920px) {
+  .hero {
     grid-template-columns: 1fr;
-    padding: 60px 16px;
   }
 
-  .promo-title {
-    font-size: 28px;
+  .plans {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .home-view {
+    padding: 18px 14px 40px;
   }
 
-  .promo-desc {
-    font-size: 18px;
+  .hero-left {
+    padding: 26px;
+  }
+
+  .metrics,
+  .feature-grid,
+  .showcase-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

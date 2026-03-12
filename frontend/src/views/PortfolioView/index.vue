@@ -1,13 +1,23 @@
-<template>
-  <div class="portfolio-view-container">
-    <div class="hero-section">
-      <h2 class="hero-title">作品集管理</h2>
-      <p class="hero-subtitle">创建、编辑和管理您的摄影作品集</p>
-    </div>
+﻿<template>
+  <div class="portfolio-view">
+    <section class="hero-banner">
+      <div class="hero-copy">
+        <p class="eyebrow">PORTFOLIO WORKSPACE</p>
+        <h1>作品集管理中心</h1>
+        <p>
+          面向商业交付场景集中管理项目作品、客户信息与图像素材，支持快速编辑、批量上传与安全归档。
+        </p>
+      </div>
+      <div class="hero-badges">
+        <span>Studio-grade</span>
+        <span>Client-ready</span>
+        <span>Brand-consistent</span>
+      </div>
+    </section>
 
-    <div class="content-area">
+    <section class="manager-shell">
       <PortfolioManager />
-    </div>
+    </section>
   </div>
 </template>
 
@@ -16,61 +26,79 @@ import PortfolioManager from '@/components/PortfolioManager.vue'
 </script>
 
 <style scoped>
-.portfolio-view-container {
-  padding: 0 24px 80px;
-  max-width: 1200px;
+.portfolio-view {
+  min-height: calc(100vh - 122px);
+  padding: 22px 24px 56px;
+}
+
+.hero-banner,
+.manager-shell {
+  max-width: 1320px;
   margin: 0 auto;
-  width: 100%;
 }
 
-.hero-section {
-  text-align: center;
-  padding: 80px 24px 60px;
-  animation: fadeInUp 0.8s ease-out;
+.hero-banner {
+  border: 1px solid var(--pm-border);
+  border-radius: var(--pm-radius-lg);
+  background:
+    radial-gradient(circle at 90% 0%, rgba(15, 124, 207, 0.16), transparent 42%),
+    radial-gradient(circle at 0% 90%, rgba(19, 181, 168, 0.12), transparent 34%),
+    var(--pm-surface);
+  box-shadow: var(--pm-shadow-1);
+  padding: 34px;
+  display: grid;
+  gap: 16px;
 }
 
-.hero-title {
-  font-size: 56px;
+.eyebrow {
+  color: var(--pm-primary);
+  letter-spacing: 0.16em;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.hero-copy h1 {
+  margin-top: 8px;
+  font-size: clamp(28px, 4vw, 46px);
+  line-height: 1.08;
+  color: var(--pm-text);
+}
+
+.hero-copy p {
+  margin-top: 12px;
+  max-width: 760px;
+  color: var(--pm-text-soft);
+  line-height: 1.75;
+  font-size: 15px;
+}
+
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hero-badges span {
+  border: 1px solid #c8ddf0;
+  border-radius: 999px;
+  background: #edf7ff;
+  color: #2b5379;
+  padding: 6px 12px;
+  font-size: 12px;
   font-weight: 700;
-  color: #1d1d1f;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  margin-bottom: 12px;
 }
 
-.hero-subtitle {
-  font-size: 24px;
-  font-weight: 400;
-  color: #86868b;
-  letter-spacing: 0.01em;
+.manager-shell {
+  margin-top: 14px;
 }
 
-.content-area {
-  animation: fadeInUp 0.6s ease-out 0.2s both;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (max-width: 768px) {
-  .hero-section {
-    padding: 60px 16px 40px;
+@media (max-width: 760px) {
+  .portfolio-view {
+    padding: 16px 14px 40px;
   }
 
-  .hero-title {
-    font-size: 36px;
-  }
-
-  .hero-subtitle {
-    font-size: 18px;
+  .hero-banner {
+    padding: 24px;
   }
 }
 </style>

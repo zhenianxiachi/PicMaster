@@ -1,114 +1,115 @@
-<template>
+﻿<template>
   <div class="hsl-editor">
     <div class="hsl-header">
-      <span class="hsl-title">HSL 高级调节</span>
+      <h4>HSL 精细调色</h4>
+      <p>按颜色分区调整色相、饱和度、明度。</p>
     </div>
-    
-    <div class="hsl-controls">
-      <div 
-        v-for="color in hslColors" 
-        :key="color.name" 
-        class="color-control"
-        :class="{ 'active': selectedColorName === color.name }"
-        @click="selectColor(color.name)"
+
+    <div class="color-tabs">
+      <button
+        v-for="color in hslColors"
+        :key="color.name"
+        type="button"
+        class="color-tab"
+        :class="{ active: selectedColorName === color.name }"
+        @click="selectedColorName = color.name"
       >
-        <div class="color-header">
-          <span class="color-preview" :style="{ backgroundColor: color.hex }"></span>
-          <span class="color-name">{{ color.displayName }}</span>
+        <span class="dot" :style="{ backgroundColor: color.hex }"></span>
+        <span>{{ color.displayName }}</span>
+      </button>
+    </div>
+
+    <div class="sliders">
+      <div class="slider-row">
+        <div class="slider-head">
+          <span>色相</span>
+          <strong>{{ currentValues.hue > 0 ? '+' : '' }}{{ currentValues.hue }}°</strong>
         </div>
-        
-        <div class="slider-group">
-          <div class="slider-item">
-            <span class="slider-label">色相</span>
-            <el-slider 
-              v-model="hslValues[color.name].hue"
-              :min="-180"
-              :max="180"
-              :step="1"
-              @input="emitChange"
-            />
-            <span class="slider-value">{{ hslValues[color.name].hue > 0 ? '+' : '' }}{{ hslValues[color.name].hue }}°</span>
-          </div>
-          
-          <div class="slider-item">
-            <span class="slider-label">饱和度</span>
-            <el-slider 
-              v-model="hslValues[color.name].saturation"
-              :min="-100"
-              :max="100"
-              :step="1"
-              @input="emitChange"
-            />
-            <span class="slider-value">{{ hslValues[color.name].saturation > 0 ? '+' : '' }}{{ hslValues[color.name].saturation }}%</span>
-          </div>
-          
-          <div class="slider-item">
-            <span class="slider-label">明度</span>
-            <el-slider 
-              v-model="hslValues[color.name].lightness"
-              :min="-100"
-              :max="100"
-              :step="1"
-              @input="emitChange"
-            />
-            <span class="slider-value">{{ hslValues[color.name].lightness > 0 ? '+' : '' }}{{ hslValues[color.name].lightness }}%</span>
-          </div>
+        <el-slider
+          :model-value="currentValues.hue"
+          :min="-180"
+          :max="180"
+          :step="1"
+          @update:model-value="value => updateValue('hue', Number(value))"
+        />
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-head">
+          <span>饱和度</span>
+          <strong>{{ currentValues.saturation > 0 ? '+' : '' }}{{ currentValues.saturation }}%</strong>
         </div>
+        <el-slider
+          :model-value="currentValues.saturation"
+          :min="-100"
+          :max="100"
+          :step="1"
+          @update:model-value="value => updateValue('saturation', Number(value))"
+        />
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-head">
+          <span>明度</span>
+          <strong>{{ currentValues.lightness > 0 ? '+' : '' }}{{ currentValues.lightness }}%</strong>
+        </div>
+        <el-slider
+          :model-value="currentValues.lightness"
+          :min="-100"
+          :max="100"
+          :step="1"
+          @update:model-value="value => updateValue('lightness', Number(value))"
+        />
       </div>
     </div>
-    
-    <div class="hsl-presets">
-      <span class="preset-label">预设：</span>
-      <el-tag 
-        v-for="preset in hslPresets" 
+
+    <div class="preset-row">
+      <span>预设</span>
+      <el-tag
+        v-for="preset in hslPresets"
         :key="preset.name"
-        @click="applyPreset(preset)"
-        class="preset-tag"
         effect="plain"
+        class="preset-tag"
+        @click="applyPreset(preset.values)"
       >
         {{ preset.name }}
       </el-tag>
     </div>
-    
-    <div class="hsl-actions">
-      <el-button size="small" @click="resetAll">重置全部</el-button>
-      <el-button size="small" type="primary" @click="applyHSL">应用</el-button>
+
+    <div class="action-row">
+      <el-button size="small" @click="resetAll">重置 HSL</el-button>
+      <el-button size="small" type="primary" @click="emitChange">应用</el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { computed, reactive, ref } from 'vue'
 
-interface HSLValue {
+export interface HSLValue {
   hue: number
   saturation: number
   lightness: number
 }
 
-interface HSLPreset {
-  name: string
-  values: Record<string, HSLValue>
-}
+export type HSLData = Record<string, HSLValue>
 
 const emit = defineEmits<{
-  applyHSL: [hslData: Record<string, HSLValue>]
+  applyHSL: [hslData: HSLData]
 }>()
 
-const selectedColorName = ref<string | null>(null)
-
 const hslColors = [
-  { name: 'red', displayName: '红色', hex: '#ff0000', hueRange: [-15, 15] },
-  { name: 'orange', displayName: '橙色', hex: '#ff8000', hueRange: [15, 45] },
-  { name: 'yellow', displayName: '黄色', hex: '#ffff00', hueRange: [45, 75] },
-  { name: 'green', displayName: '绿色', hex: '#00ff00', hueRange: [75, 150] },
-  { name: 'cyan', displayName: '青色', hex: '#00ffff', hueRange: [150, 195] },
-  { name: 'blue', displayName: '蓝色', hex: '#0000ff', hueRange: [195, 255] },
-  { name: 'purple', displayName: '紫色', hex: '#8000ff', hueRange: [255, 285] },
-  { name: 'magenta', displayName: '洋红', hex: '#ff00ff', hueRange: [285, 345] }
-]
+  { name: 'red', displayName: '红色', hex: '#ff4d4f' },
+  { name: 'orange', displayName: '橙色', hex: '#ff9f43' },
+  { name: 'yellow', displayName: '黄色', hex: '#ffd93d' },
+  { name: 'green', displayName: '绿色', hex: '#2ecc71' },
+  { name: 'cyan', displayName: '青色', hex: '#00c9d7' },
+  { name: 'blue', displayName: '蓝色', hex: '#3f8cff' },
+  { name: 'purple', displayName: '紫色', hex: '#8b5cf6' },
+  { name: 'magenta', displayName: '洋红', hex: '#ff4da6' },
+] as const
 
-const hslValues = reactive<Record<string, HSLValue>>({
+const createDefaultHslValues = (): HSLData => ({
   red: { hue: 0, saturation: 0, lightness: 0 },
   orange: { hue: 0, saturation: 0, lightness: 0 },
   yellow: { hue: 0, saturation: 0, lightness: 0 },
@@ -116,234 +117,197 @@ const hslValues = reactive<Record<string, HSLValue>>({
   cyan: { hue: 0, saturation: 0, lightness: 0 },
   blue: { hue: 0, saturation: 0, lightness: 0 },
   purple: { hue: 0, saturation: 0, lightness: 0 },
-  magenta: { hue: 0, saturation: 0, lightness: 0 }
+  magenta: { hue: 0, saturation: 0, lightness: 0 },
 })
 
-const hslPresets: HSLPreset[] = [
+const hslValues = reactive<HSLData>(createDefaultHslValues())
+const selectedColorName = ref<keyof HSLData>('red')
+
+const currentValues = computed(() => hslValues[selectedColorName.value])
+
+const hslPresets: Array<{ name: string; values: HSLData }> = [
   {
-    name: '暖色调',
+    name: '暖色增强',
     values: {
-      red: { hue: 5, saturation: 10, lightness: 0 },
-      orange: { hue: 5, saturation: 15, lightness: 5 },
-      yellow: { hue: -5, saturation: 10, lightness: 0 },
+      red: { hue: 4, saturation: 12, lightness: 2 },
+      orange: { hue: 6, saturation: 16, lightness: 4 },
+      yellow: { hue: -6, saturation: 8, lightness: 0 },
       green: { hue: 0, saturation: -10, lightness: 0 },
-      cyan: { hue: 0, saturation: -20, lightness: 0 },
-      blue: { hue: 0, saturation: -15, lightness: 0 },
-      purple: { hue: 0, saturation: -10, lightness: 0 },
-      magenta: { hue: 0, saturation: -10, lightness: 0 }
-    }
+      cyan: { hue: 0, saturation: -18, lightness: 0 },
+      blue: { hue: 0, saturation: -14, lightness: 0 },
+      purple: { hue: 0, saturation: -8, lightness: 0 },
+      magenta: { hue: 0, saturation: -8, lightness: 0 },
+    },
   },
   {
-    name: '冷色调',
+    name: '冷调电影',
     values: {
-      red: { hue: 0, saturation: -10, lightness: 0 },
-      orange: { hue: 0, saturation: -15, lightness: 0 },
-      yellow: { hue: 0, saturation: -10, lightness: 0 },
-      green: { hue: -5, saturation: 5, lightness: 0 },
-      cyan: { hue: 5, saturation: 15, lightness: 0 },
-      blue: { hue: 5, saturation: 20, lightness: 5 },
+      red: { hue: 0, saturation: -12, lightness: 0 },
+      orange: { hue: 0, saturation: -16, lightness: 0 },
+      yellow: { hue: 0, saturation: -12, lightness: -2 },
+      green: { hue: -5, saturation: 6, lightness: 0 },
+      cyan: { hue: 6, saturation: 14, lightness: 0 },
+      blue: { hue: 6, saturation: 18, lightness: 4 },
       purple: { hue: 0, saturation: 10, lightness: 0 },
-      magenta: { hue: 0, saturation: 0, lightness: 0 }
-    }
+      magenta: { hue: 0, saturation: 0, lightness: 0 },
+    },
   },
   {
-    name: '复古胶片',
+    name: '高饱和',
     values: {
-      red: { hue: 0, saturation: -10, lightness: 5 },
-      orange: { hue: 5, saturation: -5, lightness: 5 },
-      yellow: { hue: 0, saturation: -15, lightness: 0 },
-      green: { hue: -10, saturation: -20, lightness: -5 },
-      cyan: { hue: 0, saturation: -15, lightness: 0 },
-      blue: { hue: 10, saturation: -10, lightness: -5 },
-      purple: { hue: 0, saturation: -10, lightness: 0 },
-      magenta: { hue: 0, saturation: -5, lightness: 0 }
-    }
-  },
-  {
-    name: '鲜艳色彩',
-    values: {
-      red: { hue: 0, saturation: 25, lightness: 5 },
-      orange: { hue: 0, saturation: 20, lightness: 5 },
-      yellow: { hue: 0, saturation: 20, lightness: 0 },
-      green: { hue: 0, saturation: 25, lightness: 5 },
+      red: { hue: 0, saturation: 24, lightness: 4 },
+      orange: { hue: 0, saturation: 20, lightness: 4 },
+      yellow: { hue: 0, saturation: 18, lightness: 0 },
+      green: { hue: 0, saturation: 22, lightness: 4 },
       cyan: { hue: 0, saturation: 20, lightness: 0 },
-      blue: { hue: 0, saturation: 25, lightness: 5 },
+      blue: { hue: 0, saturation: 24, lightness: 4 },
       purple: { hue: 0, saturation: 20, lightness: 0 },
-      magenta: { hue: 0, saturation: 20, lightness: 5 }
-    }
-  }
+      magenta: { hue: 0, saturation: 18, lightness: 4 },
+    },
+  },
 ]
 
-const selectColor = (colorName: string) => {
-  selectedColorName.value = colorName
+const cloneHslValues = (): HSLData => JSON.parse(JSON.stringify(hslValues)) as HSLData
+
+const emitChange = (): void => {
+  emit('applyHSL', cloneHslValues())
 }
 
-const applyPreset = (preset: HSLPreset) => {
-  Object.keys(preset.values).forEach(colorName => {
-    hslValues[colorName] = { ...preset.values[colorName] }
-  })
+const updateValue = (field: keyof HSLValue, value: number): void => {
+  hslValues[selectedColorName.value][field] = value
   emitChange()
 }
 
-const resetAll = () => {
-  Object.keys(hslValues).forEach(colorName => {
-    hslValues[colorName] = { hue: 0, saturation: 0, lightness: 0 }
-  })
+const applyPreset = (values: HSLData): void => {
+  for (const key of Object.keys(hslValues) as Array<keyof HSLData>) {
+    hslValues[key] = { ...values[key] }
+  }
   emitChange()
 }
 
-const emitChange = () => {
-  emit('applyHSL', JSON.parse(JSON.stringify(hslValues)))
-}
-
-const applyHSL = () => {
-  emit('applyHSL', JSON.parse(JSON.stringify(hslValues)))
+const resetAll = (): void => {
+  const defaults = createDefaultHslValues()
+  for (const key of Object.keys(hslValues) as Array<keyof HSLData>) {
+    hslValues[key] = defaults[key]
+  }
+  emitChange()
 }
 </script>
 
 <style scoped>
 .hsl-editor {
-  background-color: #1a1a1a;
+  border: 1px solid var(--pm-border);
   border-radius: 12px;
-  padding: 16px;
-  color: #ffffff;
-}
-
-.hsl-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.hsl-title {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.hsl-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.color-control {
-  background-color: #252525;
-  border-radius: 8px;
+  background: #ffffff;
   padding: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
 }
 
-.color-control:hover {
-  background-color: #303030;
+.hsl-header h4 {
+  color: #1f4a73;
+  font-size: 14px;
 }
 
-.color-control.active {
-  border-color: #409eff;
-  background-color: #2a3a4a;
+.hsl-header p {
+  margin-top: 4px;
+  color: #607b96;
+  font-size: 12px;
 }
 
-.color-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.color-header .color-preview {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  border: 1px solid #444;
-}
-
-.color-header .color-name {
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.slider-group {
-  display: flex;
-  flex-direction: column;
+.color-tabs {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
 }
 
-.slider-item {
-  display: flex;
+.color-tab {
+  border: 1px solid #cfe0ef;
+  border-radius: 10px;
+  background: #f8fbff;
+  color: #395a79;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.color-tab.active {
+  border-color: #1493dc;
+  background: #ebf6ff;
+  color: #1b4c77;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.sliders {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
-.slider-label {
-  width: 50px;
-  font-size: 11px;
-  color: #999;
+.slider-row {
+  border: 1px solid #d9e7f3;
+  border-radius: 10px;
+  background: #fbfdff;
+  padding: 8px;
 }
 
-.slider-item :deep(.el-slider) {
-  flex: 1;
+.slider-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
 }
 
-.slider-item :deep(.el-slider__runway) {
-  background-color: #333;
-  height: 4px;
+.slider-head span {
+  color: #406381;
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.slider-item :deep(.el-slider__bar) {
-  background-color: #409eff;
-  height: 4px;
+.slider-head strong {
+  color: #5c7894;
+  font-size: 12px;
 }
 
-.slider-item :deep(.el-slider__button) {
-  width: 14px;
-  height: 14px;
-  border-color: #409eff;
-}
-
-.slider-value {
-  width: 40px;
-  font-size: 11px;
-  color: #ccc;
-  text-align: right;
-}
-
-.hsl-presets {
+.preset-row {
+  margin-top: 10px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin-top: 16px;
-  margin-bottom: 16px;
+  gap: 6px;
 }
 
-.preset-label {
+.preset-row > span {
+  color: #627b95;
   font-size: 12px;
-  color: #999;
+  font-weight: 700;
 }
 
 .preset-tag {
   cursor: pointer;
-  font-size: 12px;
-  border-radius: 4px;
 }
 
-.preset-tag:hover {
-  background-color: #409eff;
-  color: #fff;
-  border-color: #409eff;
-}
-
-.hsl-actions {
+.action-row {
+  margin-top: 10px;
   display: flex;
   justify-content: flex-end;
   gap: 8px;
 }
 
-.hsl-actions :deep(.el-button) {
-  border-radius: 6px;
+@media (max-width: 760px) {
+  .color-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 </style>

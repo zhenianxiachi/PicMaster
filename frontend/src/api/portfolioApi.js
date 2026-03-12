@@ -10,6 +10,22 @@ const apiClient = axios.create({
   }
 })
 
+apiClient.interceptors.request.use(requestConfig => {
+  try {
+    const rawSession = localStorage.getItem('picmaster_session_v2')
+    if (rawSession) {
+      const session = JSON.parse(rawSession)
+      if (session?.token) {
+        requestConfig.headers = requestConfig.headers || {}
+        requestConfig.headers.Authorization = `Bearer ${session.token}`
+      }
+    }
+  } catch {
+    // no-op
+  }
+  return requestConfig
+})
+
 apiClient.interceptors.response.use(
   response => response,
   error => {

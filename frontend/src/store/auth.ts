@@ -1,203 +1,280 @@
+import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
 
-/**
- * 用户信息接口
- */
+export type UserPlan = 'FREE' | 'PRO'
+
 export interface User {
   id: string
   username: string
   email: string
-  avatar?: string
-  role: string
+  role: 'user' | 'admin'
+  plan: UserPlan
   createdAt: string
+  lastLoginAt: string
 }
 
-/**
- * 登录请求参数接口
- */
-export interface LoginParams {
-  username: string
+interface UserAccount extends User {
   password: string
 }
 
-/**
- * 注册请求参数接口
- */
+interface AuthSession {
+  userId: string
+  token: string
+}
+
+export interface LoginParams {
+  identity: string
+  password: string
+}
+
 export interface RegisterParams {
   username: string
   email: string
   password: string
 }
 
-/**
- * 认证状态管理
- */
+export interface AuthActionResult {
+  success: boolean
+  message: string
+}
+
+const ACCOUNTS_STORAGE_KEY = 'picmaster_accounts_v2'
+const SESSION_STORAGE_KEY = 'picmaster_session_v2'
+
+const readStorage = <T>(key: string, fallback: T): T => {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) {
+      return fallback
+    }
+    return JSON.parse(raw) as T
+  } catch {
+    return fallback
+  }
+}
+
+const writeStorage = (key: string, value: unknown): void => {
+  localStorage.setItem(key, JSON.stringify(value))
+}
+
+const createId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
+const sanitizeAccount = (account: UserAccount): User => ({
+  id: account.id,
+  username: account.username,
+  email: account.email,
+  role: account.role,
+  plan: account.plan,
+  createdAt: account.createdAt,
+  lastLoginAt: account.lastLoginAt,
+})
+
 export const useAuthStore = defineStore('auth', () => {
-  // 状态
   const user = ref<User | null>(null)
   const token = ref<string | null>(null)
   const isLoading = ref(false)
+  const authDialogVisible = ref(false)
+  const authDialogMode = ref<'login' | 'register'>('login')
 
-  // 计算属性
-  const isLoggedIn = computed(() => !!token.value && !!user.value)
-  const userRole = computed(() => user.value?.role || 'guest')
+  const isLoggedIn = computed(() => Boolean(user.value && token.value))
+  const userRole = computed(() => user.value?.role ?? 'guest')
+  const isPro = computed(() => user.value?.plan === 'PRO')
+  const planLabel = computed(() => (isPro.value ? 'Pro' : 'Free'))
 
-  // 方法
-
-  /**
-   * 设置用户信息
-   * @param userData 用户数据
-   */
-  const setUser = (userData: User | null): void => {
-    user.value = userData
+  const getAccounts = (): UserAccount[] => {
+    return readStorage<UserAccount[]>(ACCOUNTS_STORAGE_KEY, [])
   }
 
-  /**
-   * 设置认证令牌
-   * @param authToken 认证令牌
-   */
-  const setToken = (authToken: string | null): void => {
-    token.value = authToken
-    if (authToken) {
-      localStorage.setItem('auth_token', authToken)
-    } else {
-      localStorage.removeItem('auth_token')
+  const saveAccounts = (accounts: UserAccount[]): void => {
+    writeStorage(ACCOUNTS_STORAGE_KEY, accounts)
+  }
+
+  const persistSession = (nextSession: AuthSession | null): void => {
+    if (!nextSession) {
+      localStorage.removeItem(SESSION_STORAGE_KEY)
+      return
+    }
+    writeStorage(SESSION_STORAGE_KEY, nextSession)
+  }
+
+  const setUser = (nextUser: User | null): void => {
+    user.value = nextUser
+    if (nextUser && token.value) {
+      persistSession({ userId: nextUser.id, token: token.value })
+    } else if (!nextUser) {
+      persistSession(null)
     }
   }
 
-  /**
-   * 获取认证令牌
-   * @returns 认证令牌
-   */
-  const getToken = (): string | null => {
-    if (!token.value) {
-      const savedToken = localStorage.getItem('auth_token')
-      if (savedToken) {
-        token.value = savedToken
-      }
+  const setToken = (nextToken: string | null): void => {
+    token.value = nextToken
+    if (nextToken && user.value) {
+      persistSession({ userId: user.value.id, token: nextToken })
+    } else if (!nextToken) {
+      persistSession(null)
     }
-    return token.value
   }
 
-  /**
-   * 登录
-   * @param credentials 登录凭据
-   * @returns Promise<boolean> 登录是否成功
-   */
-  const login = async (credentials: LoginParams): Promise<boolean> => {
+  const getToken = (): string | null => token.value
+
+  const openAuthDialog = (mode: 'login' | 'register' = 'login'): void => {
+    authDialogMode.value = mode
+    authDialogVisible.value = true
+  }
+
+  const closeAuthDialog = (): void => {
+    authDialogVisible.value = false
+  }
+
+  const login = async (credentials: LoginParams): Promise<AuthActionResult> => {
     isLoading.value = true
     try {
-      // TODO: 实现实际的登录 API 调用
-      // const response = await request.post('/auth/login', credentials)
+      const identity = credentials.identity.trim().toLowerCase()
+      const accounts = getAccounts()
+      const account = accounts.find(
+        item => item.email.toLowerCase() === identity || item.username.toLowerCase() === identity
+      )
 
-      // 模拟登录成功
-      const mockUser: User = {
-        id: '1',
-        username: credentials.username,
-        email: 'user@example.com',
+      if (!account || account.password !== credentials.password) {
+        return { success: false, message: '账号或密码不正确' }
+      }
+
+      account.lastLoginAt = new Date().toISOString()
+      saveAccounts(accounts)
+
+      setUser(sanitizeAccount(account))
+      setToken(createId())
+      return { success: true, message: '登录成功' }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const register = async (payload: RegisterParams): Promise<AuthActionResult> => {
+    isLoading.value = true
+    try {
+      const username = payload.username.trim()
+      const email = payload.email.trim().toLowerCase()
+
+      if (!username || !email || !payload.password) {
+        return { success: false, message: '请完整填写注册信息' }
+      }
+
+      const accounts = getAccounts()
+      const hasDuplicate = accounts.some(
+        item => item.username.toLowerCase() === username.toLowerCase() || item.email.toLowerCase() === email
+      )
+
+      if (hasDuplicate) {
+        return { success: false, message: '用户名或邮箱已存在' }
+      }
+
+      const now = new Date().toISOString()
+      const account: UserAccount = {
+        id: createId(),
+        username,
+        email,
+        password: payload.password,
         role: 'user',
-        createdAt: new Date().toISOString(),
+        plan: 'FREE',
+        createdAt: now,
+        lastLoginAt: now,
       }
 
-      const mockToken = 'mock_jwt_token_' + Date.now()
+      accounts.push(account)
+      saveAccounts(accounts)
 
-      setUser(mockUser)
-      setToken(mockToken)
-
-      return true
-    } catch (error) {
-      console.error('登录失败:', error)
-      return false
+      setUser(sanitizeAccount(account))
+      setToken(createId())
+      return { success: true, message: '注册成功，欢迎使用 PicMaster' }
     } finally {
       isLoading.value = false
     }
   }
 
-  /**
-   * 注册
-   * @param userData 注册数据
-   * @returns Promise<boolean> 注册是否成功
-   */
-  const register = async (userData: RegisterParams): Promise<boolean> => {
-    isLoading.value = true
-    try {
-      // TODO: 实现实际的注册 API 调用
-      // const response = await request.post('/auth/register', userData)
-
-      return true
-    } catch (error) {
-      console.error('注册失败:', error)
-      return false
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  /**
-   * 登出
-   */
   const logout = (): void => {
     setUser(null)
     setToken(null)
-    // TODO: 清除其他相关数据
   }
 
-  /**
-   * 刷新用户信息
-   * @returns Promise<boolean> 刷新是否成功
-   */
   const refreshUserInfo = async (): Promise<boolean> => {
-    const currentToken = getToken()
-    if (!currentToken) {
-      return false
-    }
-
-    isLoading.value = true
-    try {
-      // TODO: 实现获取用户信息的 API 调用
-      // const response = await request.get('/auth/user')
-      // setUser(response.data)
-
-      return true
-    } catch (error) {
-      console.error('刷新用户信息失败:', error)
+    const session = readStorage<AuthSession | null>(SESSION_STORAGE_KEY, null)
+    if (!session?.userId) {
       logout()
       return false
-    } finally {
-      isLoading.value = false
     }
+
+    const account = getAccounts().find(item => item.id === session.userId)
+    if (!account) {
+      logout()
+      return false
+    }
+
+    setUser(sanitizeAccount(account))
+    setToken(session.token)
+    return true
   }
 
-  /**
-   * 初始化认证状态
-   */
   const initializeAuth = (): void => {
-    const savedToken = localStorage.getItem('auth_token')
-    if (savedToken) {
-      token.value = savedToken
-      refreshUserInfo()
+    const session = readStorage<AuthSession | null>(SESSION_STORAGE_KEY, null)
+    if (!session?.userId || !session.token) {
+      logout()
+      return
     }
+
+    const account = getAccounts().find(item => item.id === session.userId)
+    if (!account) {
+      logout()
+      return
+    }
+
+    setUser(sanitizeAccount(account))
+    setToken(session.token)
+  }
+
+  const upgradeToPro = (): boolean => {
+    if (!user.value) {
+      return false
+    }
+
+    const accounts = getAccounts()
+    const account = accounts.find(item => item.id === user.value?.id)
+    if (!account) {
+      return false
+    }
+
+    account.plan = 'PRO'
+    account.lastLoginAt = new Date().toISOString()
+    saveAccounts(accounts)
+    setUser(sanitizeAccount(account))
+    return true
   }
 
   return {
-    // 状态
     user,
     token,
     isLoading,
-
-    // 计算属性
+    authDialogVisible,
+    authDialogMode,
     isLoggedIn,
     userRole,
-
-    // 方法
+    isPro,
+    planLabel,
     setUser,
     setToken,
     getToken,
+    openAuthDialog,
+    closeAuthDialog,
     login,
     register,
     logout,
     refreshUserInfo,
     initializeAuth,
+    upgradeToPro,
   }
 })
