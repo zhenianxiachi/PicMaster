@@ -105,26 +105,31 @@
 
 | 技术 | 版本 | 用途 |
 |------|------|------|
-| Vue.js | 3.x | 前端框架 |
-| TypeScript | 5.x | 类型安全 |
-| Vite | 6.x | 构建工具 |
-| Element Plus | 2.x | UI组件库 |
-| Fabric.js | 6.x | Canvas图像处理 |
-| Vue Router | 4.x | 路由管理 |
-| Axios | 1.x | HTTP请求 |
+| Vue.js | 3.5.x | 前端框架 |
+| TypeScript | 5.9.x | 类型安全 |
+| Vite | 6.3.x | 构建工具 |
+| Element Plus | 2.7.x | UI组件库 |
+| Fabric.js | 5.3.x | Canvas图像处理 |
+| Vue Router | 4.6.x | 路由管理 |
+| Pinia | 3.0.x | 状态管理 |
+| Axios | 1.6.x | HTTP请求 |
 
 ### 后端技术栈
 
 | 技术 | 版本 | 用途 |
 |------|------|------|
 | Python | 3.10+ | 后端语言 |
-| Flask | 3.x | Web框架 |
-| SQLAlchemy | 2.x | ORM框架 |
+| Flask | 3.0.x | Web框架 |
+| SQLAlchemy | 2.0.x | ORM框架 |
 | SQLite | 3 | 数据库 |
 | Pillow | 10.x | 图像处理 |
-| rawpy | 0.18+ | RAW格式处理 |
+| rawpy | 0.18.x | RAW格式处理 |
 | qrcode | 7.x | 二维码生成 |
 | Flask-CORS | 4.x | 跨域支持 |
+| PyJWT | 2.8.x | JWT认证 |
+| python-dotenv | 1.x | 环境变量管理 |
+| reportlab | 4.x | PDF生成 |
+| pymysql | 1.x | MySQL连接 |
 
 ---
 
@@ -203,19 +208,24 @@ PicMaster/
 │   ├── src/
 │   │   ├── api/                 # API接口封装
 │   │   │   ├── index.ts         # Axios实例配置
+│   │   │   ├── authApi.ts       # 用户认证API
 │   │   │   └── portfolioApi.js  # 作品集API
 │   │   ├── components/          # 公共组件
+│   │   │   ├── AppHeader.vue      # 顶部导航栏
+│   │   │   ├── AuthDialog.vue     # 登录/注册对话框
 │   │   │   ├── BatchProcessor.vue # 批量处理组件
 │   │   │   ├── CurvesEditor.vue   # 曲线编辑器
 │   │   │   ├── HSLEditor.vue      # HSL编辑器
 │   │   │   ├── ImageEditor.vue    # 图片编辑器
+│   │   │   ├── LimitDialog.vue    # 用量限制弹窗
 │   │   │   ├── PortfolioManager.vue
 │   │   │   └── PortfolioViewer.vue
 │   │   ├── config/              # 配置文件
 │   │   │   └── index.ts         # 环境配置
 │   │   ├── layouts/             # 布局组件
 │   │   ├── router/              # 路由配置
-│   │   ├── store/               # 状态管理
+│   │   ├── stores/              # Pinia状态管理
+│   │   │   └── user.ts          # 用户状态
 │   │   ├── styles/              # 全局样式
 │   │   ├── types/               # TypeScript类型定义
 │   │   ├── utils/               # 工具函数
@@ -235,6 +245,7 @@ PicMaster/
 ├── backend/                     # 后端项目
 │   ├── routes/                  # API路由
 │   │   ├── ai.py                # AI意图解析API
+│   │   ├── auth.py              # 用户认证API
 │   │   ├── images.py            # 图片处理API
 │   │   ├── portfolios.py        # 作品集API
 │   │   └── previews.py          # 预览/二维码API
