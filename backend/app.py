@@ -19,6 +19,10 @@ app.config['SERVER_HOST'] = os.getenv('SERVER_HOST', 'localhost')
 app.config['SERVER_PORT'] = os.getenv('SERVER_PORT', '5000')
 app.config['FRONTEND_URL'] = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
+app.config['DEEPSEEK_API_KEY'] = os.getenv('DEEPSEEK_API_KEY')
+app.config['DEEPSEEK_BASE_URL'] = os.getenv('DEEPSEEK_BASE_URL', 'https://api.deepseek.com')
+app.config['DEEPSEEK_MODEL'] = os.getenv('DEEPSEEK_MODEL', 'deepseek-chat')
+
 # 数据库配置
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///picmaster.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
