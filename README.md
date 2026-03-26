@@ -391,6 +391,23 @@ const colors = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'm
 
 ## 更新日志
 
+### v1.4.0 (2026-03-26)
+
+#### 新增功能
+- ✨ 开发服务器启动脚本 - `backend/run_dev_server.py`
+- ✨ pnpm包管理器支持 - 添加 `pnpm-workspace.yaml`
+- ✨ 测试图片生成脚本 - `generate_test_images.py`
+- ✨ 数据库验证脚本 - `verify_images.py`
+
+#### 界面优化
+- 💄 商业合作页面优化
+- 💄 Vite配置优化 - 支持环境变量加载
+
+#### 技术优化
+- 🔧 后端路径解析优化 - `resolve_backend_path()`
+- 🔧 前端API请求封装 - `utils/request.ts`
+- 🔧 删除答辩文档 - 清理项目文件
+
 ### v1.3.0 (2026-03-26)
 
 #### 新增功能
