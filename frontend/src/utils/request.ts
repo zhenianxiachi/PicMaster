@@ -1,13 +1,14 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
+import config from '@/config'
 import type { ApiResponse } from '@/types'
 // import { useAuthStore } from '@/store/auth'
 
 /**
  * 创建axios实例
  */
-const axiosInstance: AxiosInstance = axios.create({
-  baseURL: "http://localhost:8000",
+export const axiosInstance: AxiosInstance = axios.create({
+  baseURL: config.apiBaseUrl,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

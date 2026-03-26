@@ -1,20 +1,44 @@
+import os
+import sys
+from pathlib import Path
+
+CURRENT_DIR = Path(__file__).resolve().parent
+if str(CURRENT_DIR) not in sys.path:
+    sys.path.insert(0, str(CURRENT_DIR))
+
+from runtime_bootstrap import prefer_repo_python
+
+prefer_repo_python()
+
 from flask import Flask, send_from_directory
 from flask_cors import CORS
-import os
 from dotenv import load_dotenv
 from models import db
 
+BASE_DIR = CURRENT_DIR
+
+
+def resolve_backend_path(value: str) -> str:
+    path = Path(value)
+    if path.is_absolute():
+        return str(path)
+    return str((BASE_DIR / path).resolve())
+
 # 加载环境变量
-load_dotenv()
+load_dotenv(BASE_DIR / '.env')
 
 # 创建Flask应用
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    instance_path=str((BASE_DIR / 'instance').resolve()),
+    instance_relative_config=True,
+)
 CORS(app)  # 解决跨域问题
 
 # 配置
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
-app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', 'uploads')
-app.config['TEMP_FOLDER'] = os.getenv('TEMP_FOLDER', 'temp')
+app.config['UPLOAD_FOLDER'] = resolve_backend_path(os.getenv('UPLOAD_FOLDER', 'uploads'))
+app.config['TEMP_FOLDER'] = resolve_backend_path(os.getenv('TEMP_FOLDER', 'temp'))
 app.config['SERVER_HOST'] = os.getenv('SERVER_HOST', 'localhost')
 app.config['SERVER_PORT'] = os.getenv('SERVER_PORT', '5000')
 app.config['FRONTEND_URL'] = os.getenv('FRONTEND_URL', 'http://localhost:3000')
@@ -67,4 +91,6 @@ def internal_error(error):
     return {"error": "Internal server error"}, 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    debug = os.getenv('DEBUG', 'True').lower() == 'true'
+    port = int(app.config.get('SERVER_PORT', 5000))
+    app.run(debug=debug, host='0.0.0.0', port=port)

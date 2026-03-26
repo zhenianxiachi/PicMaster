@@ -1,3 +1,14 @@
+import sys
+from pathlib import Path
+
+CURRENT_DIR = Path(__file__).resolve().parent
+if str(CURRENT_DIR) not in sys.path:
+    sys.path.insert(0, str(CURRENT_DIR))
+
+from runtime_bootstrap import prefer_repo_python
+
+prefer_repo_python()
+
 from models import db, User, Category, Tag, FilterPreset
 from app import app
 from werkzeug.security import generate_password_hash

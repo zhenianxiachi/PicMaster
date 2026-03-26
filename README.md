@@ -139,7 +139,27 @@
 
 - Node.js >= 18.0
 - Python >= 3.10
-- npm >= 9.0
+- npm >= 9.0 或 pnpm >= 8.0
+
+### 一键启动（推荐）
+
+在项目根目录下分别开两个终端：
+
+**后端：**
+```bash
+cd C:\Users\江山\Desktop\毕设1.0\PicMaster2
+python backend\run_dev_server.py
+```
+
+**前端：**
+```bash
+cd C:\Users\江山\Desktop\毕设1.0\PicMaster2\frontend
+npm run dev -- --host 0.0.0.0
+```
+
+启动后访问：
+- 前端: http://localhost:3000
+- 后端: http://localhost:5000
 
 ### 前端安装与运行
 
@@ -147,8 +167,10 @@
 # 进入前端目录
 cd frontend
 
-# 安装依赖
+# 安装依赖 (npm)
 npm install
+# 或使用 pnpm
+pnpm install
 
 # 启动开发服务器
 npm run dev
@@ -179,6 +201,8 @@ python init_db.py
 
 # 启动后端服务
 python app.py
+# 或使用开发服务器
+python run_dev_server.py
 ```
 
 后端默认运行在 `http://localhost:5000`

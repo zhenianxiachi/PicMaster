@@ -1,0 +1,10 @@
+packages:
+  - .
+  - packages/*
+
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - canvas
+  - esbuild
+  - swiper
+  - vue-demi

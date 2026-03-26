@@ -18,7 +18,7 @@
         <div class="cooperation-grid">
           <div class="cooperation-card">
             <div class="card-icon">
-              <el-icon><Building /></el-icon>
+              <el-icon><OfficeBuilding /></el-icon>
             </div>
             <h3>企业合作</h3>
             <p>为企业客户提供定制化的图像解决方案，包括批量处理、品牌管理和工作流程优化。</p>
@@ -135,7 +135,7 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { Building, Shop, Monitor, Camera, Check, Phone, Message, Position, ChatLineSquare } from '@element-plus/icons-vue'
+import { OfficeBuilding, Shop, Monitor, Camera, Check, Phone, Message, Position, ChatLineSquare } from '@element-plus/icons-vue'
 
 onMounted(() => {
   document.title = '商务合作 - PicMaster'
