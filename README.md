@@ -224,8 +224,9 @@ PicMaster/
 │   │   │   └── index.ts         # 环境配置
 │   │   ├── layouts/             # 布局组件
 │   │   ├── router/              # 路由配置
-│   │   ├── stores/              # Pinia状态管理
-│   │   │   └── user.ts          # 用户状态
+│   │   ├── store/               # Pinia状态管理
+│   │   │   ├── auth.ts          # 认证状态
+│   │   │   └── usage.ts         # 使用量状态
 │   │   ├── styles/              # 全局样式
 │   │   ├── types/               # TypeScript类型定义
 │   │   ├── utils/               # 工具函数

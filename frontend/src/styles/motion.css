@@ -1,0 +1,82 @@
+﻿:root {
+  --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-duration: 0.8s;
+  --motion-distance: 32px;
+}
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(var(--motion-distance)) scale(0.98);
+  filter: blur(8px);
+  transition:
+    opacity var(--motion-duration) var(--motion-ease),
+    transform var(--motion-duration) var(--motion-ease),
+    filter var(--motion-duration) var(--motion-ease);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: transform, opacity, filter;
+}
+
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+
+[data-reveal='fade'] {
+  transform: translateY(0) scale(1);
+}
+
+[data-scrub] {
+  --scrub: 0;
+  transform: translateY(calc((1 - var(--scrub)) * 24px));
+  opacity: var(--scrub);
+  transition: opacity 0.2s linear;
+}
+
+.hover-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.hover-glow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.35), transparent 55%);
+  opacity: 0;
+  transition: opacity 0.4s var(--motion-ease);
+}
+
+.hover-glow:hover::after {
+  opacity: 1;
+}
+
+.parallax-glow {
+  position: relative;
+}
+
+.parallax-glow::before {
+  content: '';
+  position: absolute;
+  inset: -30% 0 auto 0;
+  height: 220px;
+  background: radial-gradient(circle, rgba(13, 91, 158, 0.28), transparent 60%);
+  filter: blur(40px);
+  opacity: 0.9;
+  pointer-events: none;
+  transform: translateY(calc((1 - var(--scrub, 0)) * 40px));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+  }
+
+  [data-scrub] {
+    opacity: 1;
+    transform: none;
+  }
+}
